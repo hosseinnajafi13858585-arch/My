@@ -29,6 +29,12 @@ for (const p of ['index.html','index-1.html']) {
 const manifest=JSON.parse(read('manifest.webmanifest'));
 assert.equal(manifest.display,'standalone');
 assert.ok(manifest.start_url && manifest.scope && manifest.icons?.length);
+assert.ok(manifest.icons.some(icon=>String(icon.sizes).includes('192x192')),'192px install icon missing');
+assert.ok(manifest.icons.some(icon=>String(icon.sizes).includes('512x512')),'512px install icon missing');
+const appleIcon=fs.readFileSync(new URL('../apple-touch-icon.png',import.meta.url));
+assert.deepEqual([...appleIcon.subarray(0,8)],[137,80,78,71,13,10,26,10],'Apple touch icon is not a valid PNG');
+assert.equal(appleIcon.readUInt32BE(16),180,'Apple touch icon width must be 180px');
+assert.equal(appleIcon.readUInt32BE(20),180,'Apple touch icon height must be 180px');
 for (const icon of manifest.icons) if (icon.src.startsWith('./')) assert.ok(fs.existsSync(new URL('../'+icon.src.slice(2),import.meta.url)), 'Missing manifest icon '+icon.src);
 const sw=read('sw.js');
 const shell=sw.match(/const SHELL_FILES=\[([\s\S]*?)\];/);
