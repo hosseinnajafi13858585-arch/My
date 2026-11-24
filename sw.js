@@ -10,12 +10,12 @@ const SHELL_FILES=[
   './apple-touch-icon.png'
 ];
 const CDN_HOSTS=new Set(['cdn.jsdelivr.net','fonts.googleapis.com','fonts.gstatic.com']);
+const CRITICAL_CDN_FILES=['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'];
 self.addEventListener('install',event=>{
-  event.waitUntil(
-    caches.open(SHELL_CACHE)
-      .then(cache=>cache.addAll(SHELL_FILES))
-      .then(()=>self.skipWaiting())
-  );
+  event.waitUntil(Promise.all([
+    caches.open(SHELL_CACHE).then(cache=>cache.addAll(SHELL_FILES)),
+    caches.open(RUNTIME_CACHE).then(cache=>Promise.all(CRITICAL_CDN_FILES.map(url=>cache.add(url).catch(error=>{console.warn('Critical offline library cache failed',url,error);return null;}))))
+  ]).then(()=>self.skipWaiting()));
 });
 self.addEventListener('activate',event=>{
   event.waitUntil(
