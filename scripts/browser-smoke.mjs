@@ -92,8 +92,8 @@ try{
   });
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('#workspace').waitFor({state:'visible',timeout:20000});
-  const offlineGate=await page.locator('#gate').isVisible();
-  if(offlineGate) throw new Error('Offline authenticated session unexpectedly returned to login gate');
+  const gateAfterSession=await page.locator('#gate').isVisible();
+  if(gateAfterSession) throw new Error('Offline authenticated session unexpectedly returned to login gate');
   const appFrame=page.frameLocator('#appframe');
   await appFrame.locator('#page-content').waitFor({state:'attached',timeout:20000});
   await appFrame.locator('#app').waitFor({state:'visible',timeout:20000});
