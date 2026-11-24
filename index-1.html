@@ -1957,7 +1957,7 @@ var UI=(function(){
     if(!tiers.length){
       tierRows='<div style="padding:11px var(--sp3);font-size:12px;color:var(--txs)">هیچ تیر پورسانتی تعریف نشده. با دکمه «افزودن پورسانت جدید شروع کنید.</div>';
     }else{
-      tierRows='<div style="padding:0 var(--sp3)"><table class="dt" style="margin-bottom:0"><thead><tr><th>حداقل فروش</th><th>حداکثر فروش</th><th>پورسانت</th><th></th></tr></thead><tbody>'+
+      tierRows='<div style="padding:0 var(--sp3);max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="dt" style="margin-bottom:0;min-width:470px"><thead><tr><th>حداقل فروش</th><th>حداکثر فروش</th><th>پورسانت</th><th></th></tr></thead><tbody>'+
         tiers.map(function(t,i){return'<tr><td class="td-num">'+Fmt.money(t.minSales)+'</td><td class="td-num">'+(t.maxSales==null?'بدون سقف':Fmt.money(t.maxSales))+'</td><td class="td-num">'+Number(t.pct).toFixed(1)+'%</td><td><div class="td-act"><button class="rb" data-tier-up="'+i+'" title="بالا">'+Icons.chevD+'</button><button class="rb" data-tier-down="'+i+'" title="پایین">'+Icons.chevD+'</button><button class="rb ed" data-tier-edit="'+i+'">'+Icons.edit+'</button><button class="rb dl" data-tier-del="'+i+'">'+Icons.trash+'</button></div></td></tr>';}).join('')+
         '</tbody></table></div>';
     }
