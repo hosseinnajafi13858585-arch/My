@@ -1127,33 +1127,40 @@ var RememberedAccounts=(function(){
 var CommissionTiers=(function(){
   function normalize(tiers){
     if(!Array.isArray(tiers))return[];
-    return tiers.map(function(t){
-      return{minSales:Math.max(0,Number(t.minSales)||0),pct:Math.max(0,Number(t.pct)||0)};
+    var sorted=tiers.map(function(t){
+      return{minSales:Math.max(0,Number(t.minSales)||0),maxSales:(t.maxSales==null||t.maxSales==='')?null:Math.max(0,Number(t.maxSales)||0),pct:Math.max(0,Number(t.pct)||0)};
     }).filter(function(t){return t.pct>0;}).sort(function(a,b){return a.minSales-b.minSales;});
+    // Backward compatibility: old tiers had only a minimum threshold.
+    for(var i=0;i<sorted.length;i++){
+      if(sorted[i].maxSales==null&&i<sorted.length-1&&tiers.some(function(t){return t.minSales===sorted[i].minSales&&t.maxSales==null;})){
+        sorted[i].maxSales=sorted[i+1].minSales-1;
+      }
+    }
+    return sorted;
   }
   function validate(tiers){
     var errs=[];
-    if(!Array.isArray(tiers)){return['invalid'];}
-    var seen={};
-    for(var i=0;i<tiers.length;i++){
-      var t=tiers[i];
-      if(t.pct<=0)errs.push('درصد پورسانت باید بزرگتر از ۰ باشد');
-      if(t.minSales<0)errs.push('حداقل فروش نمی‌تواند منفی باشد');
-      if(i>0&&t.minSales<=tiers[i-1].minSales)errs.push('حداقل فروش باید بزرگتر از تیر قبلی باشد');
-      var key=String(t.minSales);
-      if(seen[key])errs.push('حداقل فروش تکراری مجاز نیست');
-      seen[key]=true;
+    if(!Array.isArray(tiers))return['invalid'];
+    var sorted=tiers.slice().sort(function(a,b){return a.minSales-b.minSales;});
+    for(var i=0;i<sorted.length;i++){
+      var t=sorted[i],max=t.maxSales==null||t.maxSales===''?null:Number(t.maxSales);
+      if(!Number.isFinite(Number(t.minSales))||t.minSales<0)errs.push('حداقل فروش معتبر نیست');
+      if(max!=null&&(!Number.isFinite(max)||max<=t.minSales))errs.push('حداکثر فروش باید بیشتر از حداقل فروش باشد');
+      if(!Number.isFinite(Number(t.pct))||t.pct<=0)errs.push('درصد پورسانت باید بزرگتر از ۰ باشد');
+      if(i>0){
+        var prev=sorted[i-1],prevMax=prev.maxSales==null||prev.maxSales===''?null:Number(prev.maxSales);
+        if(prevMax==null||t.minSales<=prevMax)errs.push('بازه‌های فروش نباید هم‌پوشانی داشته باشند');
+      }
     }
     return errs;
   }
   function getCommissionPct(totalSales,tiers){
-    if(!Array.isArray(tiers)||!tiers.length)return 0;
-    var sorted=tiers.slice().sort(function(a,b){return a.minSales-b.minSales;});
-    var match=0;
+    var sorted=normalize(tiers);
     for(var i=0;i<sorted.length;i++){
-      if(totalSales>=sorted[i].minSales)match=sorted[i].pct;else break;
+      var t=sorted[i];
+      if(totalSales>=t.minSales&&(t.maxSales==null||totalSales<=t.maxSales))return t.pct;
     }
-    return match;
+    return 0;
   }
   return{normalize:normalize,validate:validate,getCommissionPct:getCommissionPct};
 })();
@@ -1949,8 +1956,8 @@ var UI=(function(){
     if(!tiers.length){
       tierRows='<div style="padding:11px var(--sp3);font-size:12px;color:var(--txs)">هیچ تیر پورسانتی تعریف نشده. با دکمه «افزودن پورسانت جدید شروع کنید.</div>';
     }else{
-      tierRows='<div style="padding:0 var(--sp3)"><table class="dt" style="margin-bottom:0"><thead><tr><th>حداقل فروش (تومان)</th><th>درصد پورسانت</th><th></th></tr></thead><tbody>'+
-        tiers.map(function(t,i){return'<tr><td class="td-num">'+Fmt.money(t.minSales)+'</td><td class="td-num">'+Number(t.pct).toFixed(1)+'%</td><td><div class="td-act"><button class="rb" data-tier-up="'+i+'" title="بالا">'+Icons.chevD+'</button><button class="rb" data-tier-down="'+i+'" title="پایین">'+Icons.chevD+'</button><button class="rb ed" data-tier-edit="'+i+'">'+Icons.edit+'</button><button class="rb dl" data-tier-del="'+i+'">'+Icons.trash+'</button></div></td></tr>';}).join('')+
+      tierRows='<div style="padding:0 var(--sp3)"><table class="dt" style="margin-bottom:0"><thead><tr><th>حداقل فروش</th><th>حداکثر فروش</th><th>پورسانت</th><th></th></tr></thead><tbody>'+
+        tiers.map(function(t,i){return'<tr><td class="td-num">'+Fmt.money(t.minSales)+'</td><td class="td-num">'+(t.maxSales==null?'بدون سقف':Fmt.money(t.maxSales))+'</td><td class="td-num">'+Number(t.pct).toFixed(1)+'%</td><td><div class="td-act"><button class="rb" data-tier-up="'+i+'" title="بالا">'+Icons.chevD+'</button><button class="rb" data-tier-down="'+i+'" title="پایین">'+Icons.chevD+'</button><button class="rb ed" data-tier-edit="'+i+'">'+Icons.edit+'</button><button class="rb dl" data-tier-del="'+i+'">'+Icons.trash+'</button></div></td></tr>';}).join('')+
         '</tbody></table></div>';
     }
     var tierSec=document.createElement('div');tierSec.className='settings-section';
@@ -2224,22 +2231,23 @@ var App=(function(){
   function openTierForm(editIdx){
     var cfg=Store.loadSettings(),tiers=cfg.commissionTiers||[];
     var editing=editIdx!=null&&tiers[editIdx]?tiers[editIdx]:null;
-    Modal.open({title:editing!=null?'ویرایش تیر پورسانت':'تیر پورسانت جدید',body:'<div class="form-grid"><div class="field field-full"><label>حداقل فروش (تومان)</label><input type="number" id="tf-min" value="'+(editing?editing.minSales:'')+'" placeholder="مثال: 200000000"></div><div class="field field-full"><label>درصد پورسانت</label><input type="number" id="tf-pct" value="'+(editing?editing.pct:'')+'" step="0.1" placeholder="مثال: 2"></div></div>',footer:'<button class="btn btn-ghost" id="tf-c">انصراف</button><button class="btn btn-primary" id="tf-sv">'+Icons.save+'<span>ذخیره</span></button>'});
+    Modal.open({title:editing!=null?'ویرایش بازه پورسانت':'بازه پورسانت جدید',body:'<div class="form-grid"><div class="field"><label>حداقل فروش (تومان)</label><input type="number" id="tf-min" min="0" value="'+(editing?editing.minSales:'')+'" placeholder="مثال: 200000000"></div><div class="field"><label>حداکثر فروش (تومان)</label><input type="number" id="tf-max" min="0" value="'+(editing&&editing.maxSales!=null?editing.maxSales:'')+'" placeholder="خالی = بدون سقف"></div><div class="field field-full"><label>درصد پورسانت</label><input type="number" id="tf-pct" min="0.01" step="0.1" value="'+(editing?editing.pct:'')+'" placeholder="مثال: 2"></div><div class="field field-full" style="font-size:11px;color:var(--txs)">این درصد فقط وقتی اعمال می‌شود که فروش کل داخل بازه حداقل تا حداکثر باشد. خالی گذاشتن حداکثر یعنی بدون سقف.</div></div>',footer:'<button class="btn btn-ghost" id="tf-c">انصراف</button><button class="btn btn-primary" id="tf-sv">'+Icons.save+'<span>ذخیره</span></button>'});
     setTimeout(function(){
       var c=document.getElementById('tf-c');if(c)c.addEventListener('click',Modal.close);
       var sv=document.getElementById('tf-sv');if(sv)sv.addEventListener('click',function(){
         var minSales=parseInt((document.getElementById('tf-min')||{}).value,10);
+        var maxRaw=(document.getElementById('tf-max')||{}).value;
+        var maxSales=maxRaw===''?null:parseInt(maxRaw,10);
         var pct=parseFloat((document.getElementById('tf-pct')||{}).value);
         if(isNaN(minSales)||minSales<0){Toast.error('حداقل فروش معتبر وارد کنید');return;}
+        if(maxSales!==null&&(isNaN(maxSales)||maxSales<=minSales)){Toast.error('حداکثر فروش باید بیشتر از حداقل فروش باشد');return;}
         if(isNaN(pct)||pct<=0){Toast.error('درصد پورسانت باید بزرگتر از ۰ باشد');return;}
-        var c2=Store.loadSettings(),t=c2.commissionTiers||[];
-        if(editing!=null){
-          t[editIdx]={minSales:minSales,pct:pct};
-        }else{
-          if(t.some(function(x){return x.minSales===minSales;})){Toast.error('این حداقل فروش قبلاً تعریف شده');return;}
-          t.push({minSales:minSales,pct:pct});
-        }
+        var c2=Store.loadSettings(),t=(c2.commissionTiers||[]).slice();
+        var candidate={minSales:minSales,maxSales:maxSales,pct:pct};
+        if(editing!=null)t[editIdx]=candidate;else t.push(candidate);
         t.sort(function(a,b){return a.minSales-b.minSales;});
+        var errors=CommissionTiers.validate(t);
+        if(errors.length){Toast.error(errors[0]);return;}
         c2.commissionTiers=t;
         Store.saveSettings(c2);
         Modal.close();Toast.success('تیر ذخیره شد');refresh();
