@@ -83,8 +83,25 @@ try{
   await page.locator('#email').waitFor({state:'visible',timeout:15000});
   const offlineGate=await page.locator('#gate').isVisible();
   if(!offlineGate) throw new Error('Offline login shell did not render');
+  await page.evaluate(()=>{
+    localStorage.setItem('workapp-users',JSON.stringify([{username:'owner',password:'test-only',name:'آزمایش',role:'superadmin',status:'active',approval:'approved'}]));
+    localStorage.setItem('workapp-super','owner');
+    sessionStorage.setItem('workapp-auth',JSON.stringify({username:'owner',name:'آزمایش',role:'superadmin',isSuper:true}));
+    const gate=document.getElementById('gate'),workspace=document.getElementById('workspace'),frame=document.getElementById('appframe');
+    if(gate)gate.classList.add('hidden');
+    if(workspace)workspace.classList.remove('hidden');
+    if(frame){frame.classList.remove('hidden');frame.src='./index-1.html';}
+  });
+  const appFrame=page.frameLocator('#appframe');
+  await appFrame.locator('#page-content').waitFor({state:'attached',timeout:20000});
+  await appFrame.locator('#app').waitFor({state:'visible',timeout:20000});
+  const offlineAppText=await appFrame.locator('#app').innerText();
+  if(!offlineAppText.trim()) throw new Error('Authenticated offline app shell did not render');
+  const pageSections=await appFrame.locator('#page-content > *').count();
+  if(pageSections<1) throw new Error('Offline dashboard content did not render');
+
   if(pageErrors.length) throw new Error('Browser runtime errors: '+pageErrors.join(' | '));
-  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineShell:true,pageErrors},null,2));
+  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineShell:true,authenticatedOfflineDashboard:true,pageSections,pageErrors},null,2));
 } finally {
   if(browser) await browser.close();
   await new Promise(resolve=>server.close(resolve));
