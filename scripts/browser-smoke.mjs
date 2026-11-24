@@ -78,6 +78,11 @@ try{
     return {names,criticalLibraryCached:found};
   });
   if(!cacheState.criticalLibraryCached) throw new Error('Supabase client was not cached for offline startup');
+  await context.setOffline(true);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#email').waitFor({state:'visible',timeout:15000});
+  const offlineGate=await page.locator('#gate').isVisible();
+  if(!offlineGate) throw new Error('Offline unauthenticated visit should stay on the login gate');
   await page.evaluate(()=>{
     const uid='00000000-0000-4000-8000-000000000001';
     const now=Math.floor(Date.now()/1000);
@@ -85,7 +90,6 @@ try{
     localStorage.setItem('sb-jrhihuaswonlcdkhoabf-auth-token',JSON.stringify(session));
     localStorage.setItem('mizan-cloud-snapshot-'+uid,JSON.stringify({schema:1,ownerUsername:'owner',keys:{}}));
   });
-  await context.setOffline(true);
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('#workspace').waitFor({state:'visible',timeout:20000});
   const offlineGate=await page.locator('#gate').isVisible();
@@ -99,7 +103,7 @@ try{
   if(pageSections<1) throw new Error('Offline dashboard content did not render');
 
   if(pageErrors.length) throw new Error('Browser runtime errors: '+pageErrors.join(' | '));
-  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineAuthenticatedSession:true,authenticatedOfflineDashboard:true,pageSections,pageErrors},null,2));
+  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,authenticatedOfflineDashboard:true,pageSections,pageErrors},null,2));
 } finally {
   if(browser) await browser.close();
   await new Promise(resolve=>server.close(resolve));
