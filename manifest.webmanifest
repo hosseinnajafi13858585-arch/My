@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "میزان | فضای شخصی",
-  "short_name": "میزان",
-  "description": "داشبورد شخصی مدیریت مالی و کارها",
+  "name": "Mizan",
+  "short_name": "Mizan",
+  "description": "Personal finance and work dashboard",
   "lang": "fa",
   "dir": "rtl",
   "start_url": "./index.html",
@@ -13,7 +13,7 @@
   "theme_color": "#236b4d",
   "icons": [
     {
-      "src": "./apple-touch-icon.png",
+      "src": "./apple-touch-icon.png?v=11",
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
