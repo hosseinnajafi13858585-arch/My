@@ -8,7 +8,7 @@
   var reminderTimer = null;
   var marketCache = null;
   if (window.Icons) {
-    var iconAliases = { sparkles: 'star', fileText: 'info', image: 'activity', externalLink: 'upload', bellRing: 'bell', send: 'check', trendingUp: 'activity', arrowDownLeft: 'chevR', arrowUpRight: 'chevL', chevronRight: 'chevR', chevronLeft: 'chevL' };
+    var iconAliases = { sparkles: 'star', fileText: 'info', image: 'activity', externalLink: 'upload', bellRing: 'bell', send: 'check', trendingUp: 'activity', arrowDownLeft: 'chevR', arrowUpRight: 'chevL', chevronRight: 'chevR', chevronLeft: 'chevL', users: 'user', shield: 'lock' };
     Object.keys(iconAliases).forEach(function (name) { if (!Icons[name]) Icons[name] = Icons[iconAliases[name]] || ''; });
   }
 
