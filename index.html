@@ -3,9 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b1220">
+<meta name="theme-color" content="#101a32">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="میزان">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="./icon.svg">
+<link rel="apple-touch-icon" href="./icon.svg">
 <meta name="description" content="فضای شخصی و امن مدیریت کار و امور مالی">
-<title>مدیریت شخصی | ورود امن</title>
+<title>میزان | فضای شخصی</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -36,18 +43,51 @@ input:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.14)}
 .top button{background:rgba(248,113,113,.12);color:#fecaca;border:1px solid rgba(248,113,113,.2);border-radius:9px;padding:6px 12px;font-size:11px}
 #appframe{border:0;width:100%;flex:1;min-height:0;background:#f0f4f9}
 @media(max-width:520px){#gate{padding:14px}.panel{padding:24px 20px;border-radius:22px}.top{padding:0 10px}}
+
+/* MIZAN mobile-first refresh */
+:root{color-scheme:dark}
+body{min-height:100vh;min-height:100dvh;background:radial-gradient(ellipse at 12% 8%,rgba(99,102,241,.22),transparent 38%),radial-gradient(ellipse at 88% 92%,rgba(34,211,238,.12),transparent 34%),#09111f}
+#gate{min-height:100vh;min-height:100dvh;padding:max(18px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(22px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.panel{width:min(100%,420px);padding:clamp(24px,6vw,36px);border-radius:28px;background:linear-gradient(155deg,rgba(19,31,55,.96),rgba(12,21,38,.96));border:1px solid rgba(148,163,184,.17);box-shadow:0 28px 90px rgba(0,0,0,.4)}
+.brand{width:66px;height:66px;margin:0 auto 10px;border-radius:22px;background:linear-gradient(145deg,#a5b4fc,#22d3ee);color:#101a32;box-shadow:0 12px 35px rgba(99,102,241,.28)}
+.brand-kicker{text-align:center;font-size:10px;letter-spacing:4px;color:#9caee0;margin:0 0 20px;font-weight:700}
+h1{text-align:center;font-size:23px;margin:0 0 8px}
+.sub{text-align:center;font-size:13px;color:#a8b5ca;line-height:2;margin:0 0 25px}
+.field{margin:16px 0}
+label{font-size:12px;color:#d2dbea;margin-bottom:8px}
+input{min-height:50px;font-size:16px;border:1px solid rgba(148,163,184,.24);background:rgba(5,13,27,.72);border-radius:14px;padding:13px 15px}
+input:focus{border-color:#8b9aff;box-shadow:0 0 0 4px rgba(129,140,248,.13)}
+.password-wrap{position:relative;display:flex;align-items:center}
+.password-wrap input{padding-inline-end:54px}
+.reveal{position:absolute;inset-inline-end:5px;top:5px;width:42px;height:40px;border:0;border-radius:11px;background:rgba(148,163,184,.1);color:#b8c5dc;display:grid;place-items:center}
+.remember{display:flex;align-items:center;gap:9px;margin:14px 2px 3px;color:#aebbd0;font-size:11px;cursor:pointer}
+.remember input{width:17px;height:17px;min-height:17px;accent-color:#818cf8;margin:0}
+.actions{gap:10px;margin-top:22px}
+.btn{min-height:50px;border-radius:14px;font-size:14px;transition:transform .15s ease,filter .15s ease}
+.btn:active{transform:scale(.985)}
+.primary{background:linear-gradient(115deg,#818cf8,#6366f1 58%,#4f46e5);box-shadow:0 10px 24px rgba(79,70,229,.25)}
+.secondary{min-height:46px}
+.link{min-height:42px}
+#msg{min-height:25px;text-align:center;font-size:12px;margin-top:12px;overflow-wrap:anywhere}
+#workspace{height:100vh;height:100dvh;min-height:0;padding-bottom:env(safe-area-inset-bottom)}
+.top{height:52px;flex:0 0 52px;padding-inline:max(12px,env(safe-area-inset-left)) max(12px,env(safe-area-inset-right));padding-top:env(safe-area-inset-top)}
+#appframe{width:100%;flex:1;min-height:0;overscroll-behavior:contain}
+@media(max-width:430px){#gate{place-items:center;padding-inline:16px}.panel{padding:27px 21px;border-radius:25px}.top{font-size:11px}}
+@media(max-height:700px) and (max-width:600px){#gate{place-items:start center;padding-top:max(12px,env(safe-area-inset-top))}.panel{padding:20px}.brand{width:52px;height:52px;border-radius:17px}.brand svg{width:31px;height:31px}.brand-kicker{margin-bottom:10px}.sub{margin-bottom:14px}.field{margin:10px 0}.actions{margin-top:14px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="gate">
   <main class="panel">
-    <div class="brand">م</div>
-    <h1 id="heading">ورود به فضای شخصی</h1>
-    <p class="sub" id="description">اطلاعات مدیریت کار و امور مالی فقط برای حساب مالک در دسترس است.</p>
+    <div class="brand" aria-hidden="true"><svg viewBox="0 0 64 64" width="38" height="38" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 46V18h8l22 28V18h8v28h-8L21 18v28h-8Z" fill="currentColor"/><circle cx="51" cy="12" r="4" fill="#67E8F9"/></svg></div>
+    <div class="brand-kicker">M I Z A N</div>
+    <h1 id="heading">ورود به میزان</h1>
+    <p class="sub" id="description">فضای امن و شخصی برای مدیریت امور مالی و کارهای روزمره</p>
     <form id="auth-form">
-      <div class="field"><label for="email">ایمیل</label><input id="email" type="email" autocomplete="username" placeholder="name@example.com" required></div>
-      <div class="field"><label for="password">رمز عبور</label><input id="password" type="password" autocomplete="current-password" placeholder="رمز عبور" required minlength="8"></div>
+      <div class="field"><label for="email">ایمیل</label><input id="email" name="email" type="email" inputmode="email" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="name@example.com" required></div>
+      <div class="field"><label for="password">رمز عبور</label><div class="password-wrap"><input id="password" name="password" type="password" autocomplete="current-password" placeholder="رمز عبور" required minlength="8"><button class="reveal" id="toggle-password" type="button" aria-label="نمایش رمز" aria-pressed="false"><svg id="eye-icon" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
+      <label class="remember"><input id="remember-email" type="checkbox" checked> <span>ایمیل من روی این دستگاه به خاطر سپرده شود</span></label>
       <div class="actions">
         <button class="btn primary" id="submit" type="submit">ورود امن</button>
         <button class="btn secondary" id="signup" type="button">ساخت حساب مالک (فقط بار اول)</button>
@@ -65,11 +105,16 @@ input:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.14)}
 (function(){
   'use strict';
   var SUPABASE_URL='https://jrhihuaswonlcdkhoabf.supabase.co';
-  var SUPABASE_KEY='sb_publishable_48l_e94YWetezy99KDGqWqU_uGj7sf9i';
+  var SUPABASE_KEY='sb_publishable_48l_e94YWetezy99KDGqWQ_uGj7sf9i';
   var client=null,owner=null,ownerUsername='owner',syncTimer=null,lastSignature='',lastSyncedPayload=null,busy=false,mode='login';
   var gate=document.getElementById('gate'),workspace=document.getElementById('workspace'),form=document.getElementById('auth-form'),msg=document.getElementById('msg'),signupBtn=document.getElementById('signup'),forgotBtn=document.getElementById('forgot'),submitBtn=document.getElementById('submit');
   function supa(){if(!client){if(!window.supabase)throw new Error('کتابخانه اتصال بارگذاری نشد؛ اینترنت را بررسی کن.');client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});}return client;}
   function say(s,good){msg.textContent=s||'';msg.style.color=good?'#86efac':'#fbbf24';}
+  var emailInput=document.getElementById('email'),passwordInput=document.getElementById('password'),rememberEmail=document.getElementById('remember-email');
+  try{var savedEmail=localStorage.getItem('mizan-saved-email');if(savedEmail){emailInput.value=savedEmail;rememberEmail.checked=true;}}catch(e){}
+  rememberEmail.addEventListener('change',function(){try{if(!rememberEmail.checked)localStorage.removeItem('mizan-saved-email');else if(emailInput.value.trim())localStorage.setItem('mizan-saved-email',emailInput.value.trim());}catch(e){}});
+  emailInput.addEventListener('change',function(){try{if(rememberEmail.checked)localStorage.setItem('mizan-saved-email',emailInput.value.trim());}catch(e){}});
+  document.getElementById('toggle-password').addEventListener('click',function(){var visible=passwordInput.type==='password';passwordInput.type=visible?'text':'password';this.setAttribute('aria-pressed',String(visible));this.setAttribute('aria-label',visible?'مخفی‌کردن رمز':'نمایش رمز');});
   function setMode(next){mode=next;document.getElementById('heading').textContent=next==='signup'?'ساخت حساب مالک':next==='forgot'?'بازیابی رمز عبور':'ورود به فضای شخصی';document.getElementById('description').textContent=next==='signup'?'این ثبت‌نام فقط برای اولین مالک پروژه فعال است. بعد از ثبت حساب، ساخت حساب جدید بسته می‌شود.':next==='forgot'?'لینک بازیابی رمز به ایمیل مالک ارسال می‌شود.':'اطلاعات مدیریت کار و امور مالی فقط برای حساب مالک در دسترس است.';submitBtn.textContent=next==='signup'?'ساخت حساب و ورود':next==='forgot'?'ارسال لینک بازیابی':'ورود امن';signupBtn.classList.toggle('hidden',next!=='login');forgotBtn.classList.toggle('hidden',next!=='login');document.getElementById('password').classList.toggle('hidden',next==='forgot');document.querySelector('label[for="password"]').classList.toggle('hidden',next==='forgot');document.getElementById('password').required=next!=='forgot';say('');}
   async function ownerClaimed(){var r=await supa().from('app_owner').select('singleton_id').eq('singleton_id',1).maybeSingle();if(r.error)throw r.error;return !!r.data;}
   async function verifyOwner(u){var r=await supa().from('app_owner').select('user_id').eq('user_id',u.id).maybeSingle();if(r.error)throw r.error;return !!r.data;}
@@ -159,12 +204,12 @@ input:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.14)}
     },3000);
   }
   async function logout(){if(syncTimer)clearInterval(syncTimer);syncTimer=null;owner=null;try{await supa().auth.signOut();}catch(e){}workspace.classList.add('hidden');gate.classList.remove('hidden');form.reset();setMode('login');say('از حساب خارج شدی.',true);}
-  form.addEventListener('submit',async function(e){e.preventDefault();if(busy)return;var email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;busy=true;submitBtn.disabled=true;say('در حال انجام...');try{if(mode==='forgot'){if(!email)throw new Error('ایمیل را وارد کن.');var fr=await supa().auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(fr.error)throw fr.error;say('اگر این ایمیل ثبت شده باشد، لینک بازیابی برایش ارسال می‌شود.',true);return;}if(!email||password.length<8)throw new Error('ایمیل معتبر و رمز حداقل ۸ کاراکتری وارد کن.');if(mode==='signup'){if(await ownerClaimed())throw new Error('حساب مالک قبلاً ساخته شده است؛ از بخش ورود استفاده کن.');var sr=await supa().auth.signUp({email:email,password:password});if(sr.error)throw sr.error;if(!sr.data.session){say('حساب ساخته شد. ایمیلت را تأیید کن؛ سپس از همین صفحه وارد شو.',true);return;}await prepareWorkspace();}else{var lr=await supa().auth.signInWithPassword({email:email,password:password});if(lr.error)throw lr.error;await prepareWorkspace();}}catch(err){say(err.message||'عملیات انجام نشد.');}finally{busy=false;submitBtn.disabled=false;}});
+  form.addEventListener('submit',async function(e){e.preventDefault();if(busy)return;var email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;try{if(rememberEmail.checked)localStorage.setItem('mizan-saved-email',email);else localStorage.removeItem('mizan-saved-email');}catch(storageError){}busy=true;submitBtn.disabled=true;say('در حال انجام...');try{if(mode==='forgot'){if(!email)throw new Error('ایمیل را وارد کن.');var fr=await supa().auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(fr.error)throw fr.error;say('اگر این ایمیل ثبت شده باشد، لینک بازیابی برایش ارسال می‌شود.',true);return;}if(!email||password.length<8)throw new Error('ایمیل معتبر و رمز حداقل ۸ کاراکتری وارد کن.');if(mode==='signup'){if(await ownerClaimed())throw new Error('حساب مالک قبلاً ساخته شده است؛ از بخش ورود استفاده کن.');var sr=await supa().auth.signUp({email:email,password:password});if(sr.error)throw sr.error;if(!sr.data.session){say('حساب ساخته شد. ایمیلت را تأیید کن؛ سپس از همین صفحه وارد شو.',true);return;}await prepareWorkspace();}else{var lr=await supa().auth.signInWithPassword({email:email,password:password});if(lr.error)throw lr.error;await prepareWorkspace();}}catch(err){say(err.message||'عملیات انجام نشد.');}finally{busy=false;submitBtn.disabled=false;}});
   signupBtn.addEventListener('click',function(){setMode('signup');});
   forgotBtn.addEventListener('click',function(){setMode('forgot');});
   document.getElementById('logout').addEventListener('click',logout);
   window.addEventListener('message',function(e){if(e.origin===location.origin&&e.data&&e.data.type==='private-workapp-logout')logout();});
-  async function boot(){setMode('login');try{var s=await supa().auth.getSession();if(s.data.session){await prepareWorkspace();return;}if(await ownerClaimed()){signupBtn.classList.add('hidden');}}catch(e){say(e.message||'اتصال به سرویس امن برقرار نشد.');}}
+  async function boot(){setMode('login');try{if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(function(e){console.warn('PWA registration failed',e);});var s=await supa().auth.getSession();if(s.data.session){await prepareWorkspace();return;}if(await ownerClaimed()){signupBtn.classList.add('hidden');}}catch(e){say(e.message||'اتصال به سرویس امن برقرار نشد.');}}
   supa().auth.onAuthStateChange(function(event,session){if(event==='SIGNED_OUT'&&owner){owner=null;if(syncTimer)clearInterval(syncTimer);workspace.classList.add('hidden');gate.classList.remove('hidden');}});
   boot();
 })();
