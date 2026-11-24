@@ -100,6 +100,7 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
 
 
 /* Mizan motion + install affordance */
+.panel .install-button{width:100%;margin-top:10px;background:rgba(35,107,77,.09)!important;border:1px solid rgba(35,107,77,.2)!important;color:#236b4d!important}.panel .install-button[hidden]{display:none!important}
 .panel{animation:mznLoginIn .72s cubic-bezier(.2,.8,.2,1) both;transform-origin:center}.brand{animation:mznBrandFloat 5s ease-in-out infinite}.brand-kicker{animation:mznFadeUp .55s .12s both}h1{animation:mznFadeUp .55s .18s both}.sub{animation:mznFadeUp .55s .24s both}.field{animation:mznFadeUp .55s .3s both}.actions{animation:mznFadeUp .55s .38s both}.btn,.link,.reveal,.install-button{transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s ease,filter .22s ease,background .22s ease}.btn:hover,.reveal:hover,.install-button:hover{transform:translateY(-2px);filter:brightness(1.04)}.btn:active,.reveal:active,.install-button:active{transform:scale(.97)}input{transition:border-color .2s ease,box-shadow .2s ease,background .2s ease}.top{animation:mznTopIn .45s ease both}.top .install-button{background:rgba(35,107,77,.1)!important;color:#236b4d!important;border:1px solid rgba(35,107,77,.2)!important;border-radius:9px;padding:6px 10px;font-size:11px}.top .install-button[hidden]{display:none!important}#appframe{animation:mznFrameIn .55s .08s both}@keyframes mznLoginIn{from{opacity:0;transform:translateY(24px) scale(.97);filter:blur(8px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}@keyframes mznFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}@keyframes mznBrandFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-4px) rotate(2deg)}}@keyframes mznTopIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}@keyframes mznFrameIn{from{opacity:0}to{opacity:1}}@media(prefers-reduced-motion:reduce){.panel,.brand,.brand-kicker,h1,.sub,.field,.actions,.top,#appframe{animation:none!important}.btn,.link,.reveal,.install-button,input{transition:none!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -123,10 +124,11 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
       </div>
     </form>
     <div id="msg" role="status" aria-live="polite"></div>
+    <button id="install-app" class="btn secondary install-button" type="button" hidden>نصب میزان روی گوشی</button>
   </main>
 </div>
 <div id="workspace" class="hidden">
-  <header class="top"><span id="account-label">فضای شخصی شما · همگام‌سازی ابری فعال</span><button id="install-app" class="install-button" type="button" hidden>نصب برنامه</button><button id="logout" type="button">خروج امن</button></header>
+  <header class="top"><span id="account-label">فضای شخصی شما · همگام‌سازی ابری فعال</span><button id="logout" type="button">خروج امن</button></header>
   <iframe id="appframe" title="مدیریت کار و امور مالی" referrerpolicy="same-origin"></iframe>
 </div>
 <script>
