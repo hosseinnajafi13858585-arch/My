@@ -1,4 +1,4 @@
-const CACHE='mizan-shell-v15';
+const CACHE='mizan-shell-v16';
 const FILES=['./','./index.html','./index-1.html','./mizan-enhancements.js?v=4','./manifest.webmanifest','./icon.svg','./apple-touch-icon.png'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
