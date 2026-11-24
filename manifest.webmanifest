@@ -1,0 +1,22 @@
+{
+  "id": "./",
+  "name": "میزان | فضای شخصی",
+  "short_name": "میزان",
+  "description": "داشبورد شخصی مدیریت مالی و کارها",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#09111f",
+  "theme_color": "#101a32",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
