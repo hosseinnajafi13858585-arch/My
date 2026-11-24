@@ -66,7 +66,7 @@ input:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.14)}
   'use strict';
   var SUPABASE_URL='https://jrhihuaswonlcdkhoabf.supabase.co';
   var SUPABASE_KEY='sb_publishable_48l_e94YWetezy99KDGqWqU_uGj7sf9i';
-  var client=null,owner=null,ownerUsername='owner',syncTimer=null,lastSignature='',busy=false,mode='login';
+  var client=null,owner=null,ownerUsername='owner',syncTimer=null,lastSignature='',lastSyncedPayload=null,busy=false,mode='login';
   var gate=document.getElementById('gate'),workspace=document.getElementById('workspace'),form=document.getElementById('auth-form'),msg=document.getElementById('msg'),signupBtn=document.getElementById('signup'),forgotBtn=document.getElementById('forgot'),submitBtn=document.getElementById('submit');
   function supa(){if(!client){if(!window.supabase)throw new Error('کتابخانه اتصال بارگذاری نشد؛ اینترنت را بررسی کن.');client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});}return client;}
   function say(s,good){msg.textContent=s||'';msg.style.color=good?'#86efac':'#fbbf24';}
@@ -95,7 +95,7 @@ input:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.14)}
     Object.keys(localKeys).forEach(function(k){if(!Object.prototype.hasOwnProperty.call(merged,k))merged[k]=localKeys[k];});
     applyKeys(merged);seedLegacySession();
     var payload={schema:1,ownerUsername:ownerUsername,keys:merged};
-    await saveCloud(payload);lastSignature=JSON.stringify(payload);
+    await saveCloud(payload);lastSyncedPayload=payload;lastSignature=JSON.stringify(payload);
     document.getElementById('account-label').textContent='حساب مالک: '+owner.email+' · همگام‌سازی ابری فعال';
     gate.classList.add('hidden');workspace.classList.remove('hidden');
     var frame=document.getElementById('appframe');
@@ -116,7 +116,47 @@ input:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.14)}
       }
     }catch(e){}
   }
-  function startSync(){if(syncTimer)clearInterval(syncTimer);syncTimer=setInterval(async function(){if(busy||!owner)return;var keys=safeKeys(),payload={schema:1,ownerUsername:ownerUsername,keys:keys},sig=JSON.stringify(payload);if(sig===lastSignature)return;busy=true;try{await saveCloud(payload);lastSignature=sig;localStorage.setItem('workapp-cloud-sync-v1','1');}catch(e){console.warn('Cloud sync failed',e);say('اتصال ابری موقتاً برقرار نیست؛ اطلاعات روی همین دستگاه محفوظ است.');}finally{busy=false;}},2500);}
+  function startSync(){
+    if(syncTimer)clearInterval(syncTimer);
+    syncTimer=setInterval(async function(){
+      if(busy||!owner||!lastSyncedPayload)return;
+      busy=true;
+      try{
+        var result=await supa().from('app_data').select('payload').eq('user_id',owner.id).maybeSingle();
+        if(result.error)throw result.error;
+        if(!result.data)throw new Error('رکورد فضای ابری پیدا نشد.');
+        var remote=result.data.payload&&typeof result.data.payload==='object'?result.data.payload:{};
+        var remoteKeys=remote.keys&&typeof remote.keys==='object'?remote.keys:{};
+        var localKeys=safeKeys(),baseKeys=lastSyncedPayload.keys||{},changed=[],all={};
+        Object.keys(baseKeys).forEach(function(k){all[k]=true;});
+        Object.keys(localKeys).forEach(function(k){all[k]=true;});
+        Object.keys(all).forEach(function(k){
+          var had=Object.prototype.hasOwnProperty.call(baseKeys,k),has=Object.prototype.hasOwnProperty.call(localKeys,k);
+          if(had!==has||(had&&baseKeys[k]!==localKeys[k]))changed.push({key:k,deleted:!has,value:localKeys[k]});
+        });
+        if(changed.length){
+          var merged={};Object.keys(remoteKeys).forEach(function(k){merged[k]=remoteKeys[k];});
+          changed.forEach(function(x){if(x.deleted)delete merged[x.key];else merged[x.key]=x.value;});
+          var payload={schema:1,ownerUsername:remote.ownerUsername||ownerUsername,keys:merged};
+          await saveCloud(payload);
+          applyKeys(merged);
+          lastSyncedPayload=payload;
+          lastSignature=JSON.stringify(payload);
+          localStorage.setItem('workapp-cloud-sync-v1','1');
+        }else{
+          var normalized={schema:1,ownerUsername:remote.ownerUsername||ownerUsername,keys:remoteKeys};
+          if(JSON.stringify(normalized)!==JSON.stringify(lastSyncedPayload)){
+            ownerUsername=normalized.ownerUsername;
+            applyKeys(remoteKeys);
+            seedLegacySession();
+            lastSyncedPayload=normalized;
+            lastSignature=JSON.stringify(normalized);
+          }
+        }
+      }catch(e){console.warn('Cloud sync failed',e);say('اتصال ابری موقتاً برقرار نیست؛ اطلاعات روی همین دستگاه محفوظ است.');}
+      finally{busy=false;}
+    },3000);
+  }
   async function logout(){if(syncTimer)clearInterval(syncTimer);syncTimer=null;owner=null;try{await supa().auth.signOut();}catch(e){}workspace.classList.add('hidden');gate.classList.remove('hidden');form.reset();setMode('login');say('از حساب خارج شدی.',true);}
   form.addEventListener('submit',async function(e){e.preventDefault();if(busy)return;var email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;busy=true;submitBtn.disabled=true;say('در حال انجام...');try{if(mode==='forgot'){if(!email)throw new Error('ایمیل را وارد کن.');var fr=await supa().auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(fr.error)throw fr.error;say('اگر این ایمیل ثبت شده باشد، لینک بازیابی برایش ارسال می‌شود.',true);return;}if(!email||password.length<8)throw new Error('ایمیل معتبر و رمز حداقل ۸ کاراکتری وارد کن.');if(mode==='signup'){if(await ownerClaimed())throw new Error('حساب مالک قبلاً ساخته شده است؛ از بخش ورود استفاده کن.');var sr=await supa().auth.signUp({email:email,password:password});if(sr.error)throw sr.error;if(!sr.data.session){say('حساب ساخته شد. ایمیلت را تأیید کن؛ سپس از همین صفحه وارد شو.',true);return;}await prepareWorkspace();}else{var lr=await supa().auth.signInWithPassword({email:email,password:password});if(lr.error)throw lr.error;await prepareWorkspace();}}catch(err){say(err.message||'عملیات انجام نشد.');}finally{busy=false;submitBtn.disabled=false;}});
   signupBtn.addEventListener('click',function(){setMode('signup');});
