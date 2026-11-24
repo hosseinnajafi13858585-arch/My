@@ -81,6 +81,25 @@ input:focus{border-color:#8b9aff;box-shadow:0 0 0 4px rgba(129,140,248,.13)}
 /* iPhone viewport and safe-area fixes */
 html,body{width:100%;max-width:100%;overflow-x:hidden}#workspace{height:100vh;height:100dvh;min-height:0;padding-bottom:env(safe-area-inset-bottom)}#appframe{display:block;width:100%;max-width:100%;min-width:0;overflow:hidden;padding-bottom:env(safe-area-inset-bottom)}
 @media(max-width:520px){.top{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right));font-size:10px}.top span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.top button{flex-shrink:0}}
+
+/* Mizan premium pastel glass login shell */
+:root{color-scheme:light;color:#20372b;background:#f3f2e9}
+body{background:radial-gradient(ellipse at 12% 8%,rgba(157,183,147,.25),transparent 38%),radial-gradient(ellipse at 88% 92%,rgba(205,195,153,.2),transparent 35%),#f3f2e9;color:#20372b}
+.panel{background:rgba(255,253,247,.78)!important;border:1px solid rgba(44,78,57,.14)!important;box-shadow:0 26px 75px rgba(45,75,55,.14),inset 0 1px 0 rgba(255,255,255,.85)!important;backdrop-filter:blur(26px) saturate(150%)!important;-webkit-backdrop-filter:blur(26px) saturate(150%)!important;color:#20372b}
+.brand{background:linear-gradient(140deg,#236b4d,#a8c5a0)!important;color:#fff!important;box-shadow:0 12px 30px rgba(35,107,77,.2)!important}
+.sub{color:#627568!important}label{color:#52695a!important}
+input{background:rgba(255,255,255,.78)!important;border:1px solid rgba(44,78,57,.15)!important;color:#20372b!important}
+input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.13)!important}
+.primary{background:linear-gradient(120deg,#236b4d,#7da889)!important;box-shadow:0 10px 24px rgba(35,107,77,.2)!important}
+.secondary{background:rgba(225,235,222,.55)!important;border:1px solid rgba(44,78,57,.15)!important;color:#315c43!important}
+.link{color:#236b4d!important}
+#msg{color:#8b704b}
+.top{background:rgba(249,248,240,.9)!important;color:#52695a!important;border-bottom:1px solid rgba(44,78,57,.12)!important;backdrop-filter:blur(18px)}
+.top button{background:rgba(189,112,107,.1)!important;color:#a35d58!important;border-color:rgba(189,112,107,.18)!important}
+#appframe{background:#f3f2e9!important}
+.passkey-btn{border-radius:12px!important;padding:7px 11px!important;background:rgba(45,125,88,.12)!important;border:1px solid rgba(45,125,88,.22)!important;color:#236b4d!important;font-size:11px!important;font-weight:700!important;margin-inline-start:8px}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -116,9 +135,11 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}#workspace{height:100vh;he
   var SUPABASE_KEY='sb_publishable_48l_e94YWetezy99KDGqWQ_uGj7sf9i';
   var client=null,owner=null,ownerUsername='owner',syncTimer=null,lastSignature='',lastSyncedPayload=null,busy=false,mode='login';
   var gate=document.getElementById('gate'),workspace=document.getElementById('workspace'),form=document.getElementById('auth-form'),msg=document.getElementById('msg'),signupBtn=document.getElementById('signup'),forgotBtn=document.getElementById('forgot'),submitBtn=document.getElementById('submit'),resendBtn=document.getElementById('resend-confirm');
-  function supa(){if(!client){if(!window.supabase)throw new Error('کتابخانه اتصال بارگذاری نشد؛ اینترنت را بررسی کن.');client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});}return client;}
+  function supa(){if(!client){if(!window.supabase)throw new Error('کتابخانه اتصال بارگذاری نشد؛ اینترنت را بررسی کن.');client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,experimental:{passkey:true}}});}return client;}
   function say(s,good){msg.textContent=s||'';msg.style.color=good?'#86efac':'#fbbf24';}
   var emailInput=document.getElementById('email'),passwordInput=document.getElementById('password'),rememberEmail=document.getElementById('remember-email');
+  var passkeyLoginBtn=document.createElement('button');passkeyLoginBtn.type='button';passkeyLoginBtn.className='btn secondary';passkeyLoginBtn.id='passkey-login';passkeyLoginBtn.textContent='ورود با Face ID / Passkey';var actionArea=form.querySelector('.actions');if(actionArea)actionArea.appendChild(passkeyLoginBtn);
+  passkeyLoginBtn.addEventListener('click',async function(){if(!window.PublicKeyCredential||!supa().auth.signInWithPasskey){say('این مرورگر یا نسخه کتابخانه از ورود بیومتریک پشتیبانی نمی‌کند.');return;}passkeyLoginBtn.disabled=true;say('در انتظار تأیید Face ID یا رمز دستگاه...');try{var pr=await supa().auth.signInWithPasskey();if(pr.error)throw pr.error;await prepareWorkspace();}catch(e){say((e.message||'ورود بیومتریک انجام نشد.')+(String(e.message||'').indexOf('passkey_disabled')>=0?' — ابتدا Passkeys را در تنظیمات Authentication پروژه Supabase فعال کن.':''));}finally{passkeyLoginBtn.disabled=false;}});
   try{var savedEmail=localStorage.getItem('mizan-saved-email');if(savedEmail){emailInput.value=savedEmail;rememberEmail.checked=true;}}catch(e){}
   rememberEmail.addEventListener('change',function(){try{if(!rememberEmail.checked)localStorage.removeItem('mizan-saved-email');else if(emailInput.value.trim())localStorage.setItem('mizan-saved-email',emailInput.value.trim());}catch(e){}});
   emailInput.addEventListener('change',function(){try{if(rememberEmail.checked)localStorage.setItem('mizan-saved-email',emailInput.value.trim());}catch(e){}});
@@ -137,6 +158,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}#workspace{height:100vh;he
   }
   function payloadSignature(p){var keys=p&&p.keys&&typeof p.keys==='object'?p.keys:{},sorted={};Object.keys(keys).sort().forEach(function(k){sorted[k]=keys[k];});return JSON.stringify({schema:1,ownerUsername:(p&&p.ownerUsername)||'owner',keys:sorted});}
   async function saveCloud(payload){var r=await supa().from('app_data').upsert({user_id:owner.id,payload:payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(r.error)throw r.error;}
+  function installPasskeyRegisterButton(){var top=document.querySelector('.top');if(!top||document.getElementById('register-passkey'))return;var b=document.createElement('button');b.type='button';b.id='register-passkey';b.className='passkey-btn';b.textContent='ثبت Face ID';b.addEventListener('click',async function(){if(!supa().auth.registerPasskey){say('نسخه کتابخانه ورود بیومتریک را پشتیبانی نمی‌کند.');return;}b.disabled=true;try{var r=await supa().auth.registerPasskey();if(r.error)throw r.error;say('ورود بیومتریک این دستگاه ثبت شد.',true);}catch(e){say((e.message||'ثبت Face ID ناموفق بود.')+(String(e.message||'').indexOf('passkey_disabled')>=0?' — باید Passkeys را در Supabase فعال کنی.':''));}finally{b.disabled=false;}});var logout=document.getElementById('logout');top.insertBefore(b,logout||null);}
   async function prepareWorkspace(){
     owner=(await supa().auth.getSession()).data.session.user;
     if(!await verifyOwner(owner)){await supa().auth.signOut();throw new Error('این حساب مالک این برنامه نیست و اجازه ورود ندارد.');}
@@ -150,7 +172,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}#workspace{height:100vh;he
     applyKeys(merged);seedLegacySession();
     var payload={schema:1,ownerUsername:ownerUsername,keys:merged};
     await saveCloud(payload);lastSyncedPayload=payload;lastSignature=JSON.stringify(payload);
-    document.getElementById('account-label').textContent='حساب مالک: '+owner.email+' · همگام‌سازی ابری فعال';
+    document.getElementById('account-label').textContent='حساب مالک: '+owner.email+' · همگام‌سازی ابری فعال';installPasskeyRegisterButton();
     gate.classList.add('hidden');workspace.classList.remove('hidden');
     var frame=document.getElementById('appframe');
     frame.onload=function(){lockEmbeddedApp(frame);};
