@@ -613,6 +613,70 @@ table.dt tbody tr:last-child td{border-bottom:none}
 .auth-btn:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(37,99,235,.35);}
 .auth-btn:active{transform:translateY(0);box-shadow:0 4px 12px rgba(37,99,235,.2);}
 .auth-btn svg{width:18px;height:18px;}
+
+/* MIZAN glass + mobile layout refresh */
+:root{--r-sm:12px;--r-md:16px;--r-lg:22px;--r-xl:28px}
+html,body,#app,.app-shell{max-width:100%;width:100%;overflow-x:clip}
+body{padding-bottom:env(safe-area-inset-bottom)}
+.main{width:min(100%,1360px);padding:clamp(12px,3vw,28px);padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+.card,.stat-card,.month-card,.record-card,.cal-widget,.today-hero,.settings-section,.collapsible,.fin-card,.fin-row,.fin-empty,.tbl-wrap{border-radius:22px;overflow:hidden}
+.card,.stat-card,.month-card,.record-card,.cal-widget,.settings-section,.collapsible,.fin-card,.fin-row{backdrop-filter:blur(18px) saturate(150%);-webkit-backdrop-filter:blur(18px) saturate(150%)}
+.nav-tabs{position:fixed;z-index:120;left:50%;bottom:max(10px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(920px,calc(100% - 24px));margin:0;padding:8px;display:flex;flex-wrap:nowrap;gap:5px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;background:rgba(12,20,39,.82);border:1px solid rgba(148,163,184,.22);border-radius:24px;box-shadow:0 14px 42px rgba(0,0,0,.28);backdrop-filter:blur(24px) saturate(170%);-webkit-backdrop-filter:blur(24px) saturate(170%)}
+.nav-tabs::-webkit-scrollbar{display:none}
+.nav-tab{flex:1 0 auto;min-width:56px;justify-content:center;flex-direction:column;gap:3px;padding:8px 10px;border-radius:16px;font-size:10px;white-space:nowrap}
+.nav-tab svg{width:20px;height:20px}
+.nav-tab.active{box-shadow:0 5px 16px rgba(99,102,241,.25)}
+.nav-tab .bdot{top:3px;left:calc(50% - 18px)}
+.topbar{background:rgba(10,17,32,.68);border-bottom:1px solid var(--bd)}
+.topbar-in{padding-top:max(10px,env(safe-area-inset-top));}
+.page-hd{min-width:0}
+.page-hd>*{min-width:0}
+.dash-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,155px),1fr))}
+.form-grid,.fin-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+input,select,textarea,button{max-width:100%}
+input,select,textarea{min-width:0}
+table{max-width:100%}
+.tbl-wrap,.table-wrap{width:100%;overflow-x:auto}
+img,svg,video,canvas{max-width:100%}
+@media(max-width:640px){
+ .main{padding:12px 12px calc(100px + env(safe-area-inset-bottom))}
+ .topbar-in{padding:10px 12px}
+ .brand-name{font-size:14px}
+ .brand-date{font-size:10px}
+ .page-hd{align-items:center}
+ .page-hd h2{font-size:18px}
+ .dash-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .stat-card{padding:12px;min-width:0}
+ .sc-val{font-size:clamp(14px,4vw,18px);overflow-wrap:anywhere}
+ .months-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .month-card{padding:12px;min-width:0}
+ .nav-tabs{width:calc(100% - 18px);bottom:max(7px,env(safe-area-inset-bottom));padding:6px;border-radius:20px}
+ .nav-tab{min-width:49px;padding:7px 8px}
+ .nav-tab span{display:block;font-size:9px;line-height:1.2}
+ .nav-tab svg{width:18px;height:18px}
+ .card-pad{padding:14px}
+ .today-hero{padding:18px}
+ .th-date{font-size:23px}
+ .quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .quick-actions .btn{justify-content:center;white-space:normal;text-align:center}
+ .form-grid,.fin-form{grid-template-columns:minmax(0,1fr)}
+ .form-grid .field-full,.fin-form .field-full{grid-column:auto}
+ .toolbar{align-items:stretch}
+ .search-box{min-width:0;width:100%;flex-basis:100%}
+ .fin-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .fin-card{min-width:0;padding:12px}
+ .fin-card .v{font-size:clamp(14px,4vw,17px);overflow-wrap:anywhere}
+ .fin-row{align-items:flex-start}
+ .page-hd .btn{white-space:normal}
+}
+@media(max-width:380px){
+ .months-grid{grid-template-columns:minmax(0,1fr)}
+ .dash-grid{grid-template-columns:minmax(0,1fr)}
+ .nav-tab{min-width:45px;padding:7px 6px}
+ .nav-tab span{font-size:8px}
+}
+@supports not (overflow:clip){html,body,#app,.app-shell{overflow-x:hidden}}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -855,9 +919,10 @@ var Store=(function(){
     try{
       var legacy=LS.keys().filter(function(k){return /^workapp-\d{4}-/.test(k)&&k.indexOf('-u-')<0;});
       legacy.forEach(function(k){var nk=pfx+k.replace('workapp-','');if(!LS.get(nk,null))LS.set(nk,LS.get(k,''));LS.del(k);moved++;});
-      ['reminders','goals','ideas','articles','achievements'].forEach(function(name){var old=LS.get('workapp-'+name,null);if(old){var nk=pfx+name;if(!LS.get(nk,null))LS.set(nk,old);LS.del('workapp-'+name);moved++;}});
+      ['reminders','goals','achievements'].forEach(function(name){var old=LS.get('workapp-'+name,null);if(old){var nk=pfx+name;if(!LS.get(nk,null))LS.set(nk,old);LS.del('workapp-'+name);moved++;}});
       var os=LS.get('workapp-settings',null);if(os){var sk=pfx+'settings';if(!LS.get(sk,null))LS.set(sk,os);LS.del('workapp-settings');moved++;}
     }catch(e){console.warn('Migration error',e);}
+    try{LS.del(pfx+'ideas');LS.del(pfx+'articles');LS.del('workapp-ideas');LS.del('workapp-articles');}catch(e){}
     LS.set(MKEY,'1');
     return moved;
   }
@@ -1688,7 +1753,7 @@ var UI=(function(){
     return el;
   }
   function navTabs(page){
-    var tabs=[{id:'today',label:'امروز',icon:Icons.home},{id:'months',label:'ماه‌ها',icon:Icons.grid},{id:'reminders',label:'یادآوری',icon:Icons.bell,badge:Reminders.pendingCount()},{id:'ideas',label:'ایده‌ها',icon:Icons.lightbulb},{id:'articles',label:'مقالات',icon:Icons.fileText},{id:'records',label:'سوابق',icon:Icons.activity},{id:'finance',label:'امور مالی',icon:Icons.wallet},{id:'achievements',label:'دستاوردها',icon:Icons.award},{id:'settings',label:'تنظیمات',icon:Icons.settings}];
+    var tabs=[{id:'today',label:'امروز',icon:Icons.home},{id:'months',label:'ماه‌ها',icon:Icons.grid},{id:'reminders',label:'یادآوری',icon:Icons.bell,badge:Reminders.pendingCount()},{id:'records',label:'سوابق',icon:Icons.activity},{id:'finance',label:'امور مالی',icon:Icons.wallet},{id:'achievements',label:'دستاوردها',icon:Icons.award},{id:'settings',label:'تنظیمات',icon:Icons.settings}];
     if(Perms.isAdmin())tabs.splice(tabs.length-1,0,{id:'users',label:'کاربران',icon:Icons.users,badge:Auth.pendingCount()});
     var nav=document.createElement('div');nav.className='nav-tabs no-print';
     tabs.forEach(function(t){var tab=document.createElement('div');tab.className='nav-tab'+(page===t.id?' active':'');tab.dataset.page=t.id;tab.innerHTML=t.icon+'<span>'+t.label+'</span>'+((t.badge||0)>0?'<span class="bdot">'+t.badge+'</span>':'');tab.addEventListener('click',function(){App.navigate(t.id);});nav.appendChild(tab);});
@@ -2074,8 +2139,6 @@ var App=(function(){
         case'months':return UI.renderMonths(_state);
         case'month-detail':return UI.renderMonthDetail(_state);
         case'reminders':return UI.renderReminders();
-        case'ideas':return UI.renderIdeas();
-        case'articles':return UI.renderArticles();
         case'records':return UI.renderRecords();
         case'finance':return Finance.render();
         case'achievements':return UI.renderAchievements();
