@@ -1552,6 +1552,7 @@ function handleLoginFail(errEl,card,reason){
 <script>
 var AuthUI=(function(){
   function show(){
+    document.querySelectorAll('.global-nav').forEach(function(n){n.remove();});
     var wrap=document.getElementById('auth-wrapper');
     if(!wrap)return;
     wrap.classList.add('visible');
