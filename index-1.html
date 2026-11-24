@@ -1382,7 +1382,7 @@ var DatePicker=(function(){
   function _render(){
     if(!_popup)return;
     var mn=Jalali.MONTHS[_vm-1].fa+' '+Jalali.faDigits(_vy);
-    _popup.innerHTML='<div class="dp-hdr"><button class="dp-nav" data-n="p">'+Icons.chevR+'</button><div class="dp-month-title">'+mn+' '+_vy+'</div><button class="dp-nav" data-n="n">'+Icons.chevL+'</button></div><div class="dp-wds">'+Jalali.WDS.map(function(w,i){return'<span class="'+(i===6?'fri':'')+'">'+w+'</span>';}).join('')+'</div><div class="dp-days" id="dpd"></div><div class="dp-footer"><button class="dp-today-btn">امروز</button><button data-a="clear">پاک</button><button data-a="close">بستن</button></div>';
+    _popup.innerHTML='<div class="dp-hdr"><button class="dp-nav" data-n="p">'+Icons.chevR+'</button><div class="dp-month-title">'+mn+'</div><button class="dp-nav" data-n="n">'+Icons.chevL+'</button></div><div class="dp-wds">'+Jalali.WDS.map(function(w,i){return'<span class="'+(i===6?'fri':'')+'">'+w+'</span>';}).join('')+'</div><div class="dp-days" id="dpd"></div><div class="dp-footer"><button class="dp-today-btn">امروز</button><button data-a="clear">پاک</button><button data-a="close">بستن</button></div>';
     _renderDays();
     _popup.querySelectorAll('.dp-nav').forEach(function(b){b.addEventListener('click',function(){if(b.dataset.n==='p'){if(_vm===1){_vm=12;_vy--;}else _vm--;}else{if(_vm===12){_vm=1;_vy++;}else _vm++;}_render();});});
     _popup.querySelector('.dp-today-btn').addEventListener('click',function(){var t=Jalali.today();_sel=t;_vy=t[0];_vm=t[1];_renderDays();if(_cb)_cb(Jalali.fmt(t[0],t[1],t[2]));close();});
@@ -1395,7 +1395,7 @@ var DatePicker=(function(){
     for(var d=1;d<=dim;d++){
       var wd=Jalali.weekday(_vy,_vm,d),isT=(t[0]===_vy&&t[1]===_vm&&t[2]===d),isSel=(_sel&&_sel[0]===_vy&&_sel[1]===_vm&&_sel[2]===d);
       var cls='dp-day'+(wd===6?' fri':'')+(isT?' td':'')+(isSel?' sel':'');
-      html+='<div class="'+cls+'" data-d="'+d+'"'> '+Jalali.faDigits(d)+'</div>';
+      html+='<div class="'+cls+'" data-d="'+d+'">'+Jalali.faDigits(d)+'</div>';
     }
     g.innerHTML=html;
     g.querySelectorAll('.dp-day[data-d]').forEach(function(el){el.addEventListener('click',function(){var d=parseInt(el.dataset.d,10);_sel=[_vy,_vm,d];_renderDays();if(_cb)_cb(Jalali.fmt(_vy,_vm,d));close();});});
