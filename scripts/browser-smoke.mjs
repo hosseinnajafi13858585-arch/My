@@ -37,6 +37,27 @@ try{
   if(!manifestResponse.ok()) throw new Error('PWA manifest is not reachable');
   const manifest=await manifestResponse.json();
   if(manifest.display!=='standalone'||!manifest.icons?.length) throw new Error('PWA manifest is incomplete');
+  const motionName=await page.locator('.panel').evaluate(el=>getComputedStyle(el).animationName);
+  if(motionName!=='mznLoginIn') throw new Error('Login motion layer did not activate');
+  await page.evaluate(()=>{
+    const event=new Event('beforeinstallprompt',{cancelable:true});
+    event.preventDefault=()=>{};
+    event.prompt=async()=>{window.__mizanInstallPrompted=true;};
+    event.userChoice=Promise.resolve({outcome:'accepted'});
+    window.dispatchEvent(event);
+  });
+  if(!(await page.locator('#install-app').isVisible())) throw new Error('Android install affordance did not appear');
+  await page.locator('#install-app').click();
+  await page.waitForFunction(()=>window.__mizanInstallPrompted===true);
+  const iosContext=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'});
+  const iosPage=await iosContext.newPage();
+  await iosPage.goto('http://127.0.0.1:4173/index.html',{waitUntil:'domcontentloaded'});
+  await iosPage.locator('#install-app').waitFor({state:'visible',timeout:10000});
+  let iosInstallMessage='';
+  iosPage.on('dialog',async dialog=>{iosInstallMessage=dialog.message();await dialog.dismiss();});
+  await iosPage.locator('#install-app').click();
+  if(!iosInstallMessage.includes('Add to Home Screen')) throw new Error('iOS Add to Home Screen instructions did not appear');
+  await iosContext.close();
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
   if(overflow) throw new Error('Horizontal overflow on 390px mobile viewport');
   await page.locator('#toggle-password').click();
@@ -63,7 +84,7 @@ try{
   const offlineGate=await page.locator('#gate').isVisible();
   if(!offlineGate) throw new Error('Offline login shell did not render');
   if(pageErrors.length) throw new Error('Browser runtime errors: '+pageErrors.join(' | '));
-  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineShell:true,pageErrors},null,2));
+  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineShell:true,pageErrors},null,2));
 } finally {
   if(browser) await browser.close();
   await new Promise(resolve=>server.close(resolve));
