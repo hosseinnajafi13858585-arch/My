@@ -45,5 +45,12 @@ assert.match(read('index.html'),/beforeinstallprompt/,'Android install prompt ha
 assert.match(read('index.html'),/apple-mobile-web-app-capable/,'iOS web app metadata missing');
 assert.match(read('index-1.html'),/mizan-premium-motion-v1/,'App motion layer missing');
 assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=13/,'Enhancement cache version mismatch');
+const appHtml=read('index-1.html');
+const dateHelpers=appHtml.match(/function isoToTehranDateTimeInput[\\s\\S]*?(?=function openReminderForm)/)?.[0];
+assert.ok(dateHelpers,'Tehran datetime helpers are missing');
+const dateTest=new Function(dateHelpers+"return {iso:tehranDateTimeInputToISO('2026-11-25T09:30'),local:isoToTehranDateTimeInput('2026-11-25T06:00:00.000Z')};")();
+assert.equal(dateTest.iso,'2026-11-25T06:00:00.000Z');
+assert.equal(dateTest.local,'2026-11-25T09:30');
+assert.match(read('mizan-enhancements.js'),/toLocaleDateString\\('fa-IR-u-ca-persian',\\{timeZone:'Asia\\/Tehran'\\}\\)/,'Document dates must use Tehran timezone');
 assert.doesNotMatch(['index.html','index-1.html','mizan-enhancements.js','sw.js'].map(read).join('\n'),/sb_secret_[A-Za-z0-9_-]+|service_role/i,'Privileged Supabase secret detected in public client code');
 console.log('PWA manifest, install hooks, offline auth guard, precache assets, and public-key safety checks passed.');
