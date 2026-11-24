@@ -82,6 +82,7 @@ input:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.14)}
     localStorage.setItem('workapp-users',JSON.stringify([account]));localStorage.setItem('workapp-super',ownerUsername);
     sessionStorage.setItem('workapp-auth',JSON.stringify({username:ownerUsername,name:ownerUsername,role:'superadmin',isSuper:true}));
   }
+  function payloadSignature(p){var keys=p&&p.keys&&typeof p.keys==='object'?p.keys:{},sorted={};Object.keys(keys).sort().forEach(function(k){sorted[k]=keys[k];});return JSON.stringify({schema:1,ownerUsername:(p&&p.ownerUsername)||'owner',keys:sorted});}
   async function saveCloud(payload){var r=await supa().from('app_data').upsert({user_id:owner.id,payload:payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(r.error)throw r.error;}
   async function prepareWorkspace(){
     owner=(await supa().auth.getSession()).data.session.user;
@@ -145,7 +146,7 @@ input:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.14)}
           localStorage.setItem('workapp-cloud-sync-v1','1');
         }else{
           var normalized={schema:1,ownerUsername:remote.ownerUsername||ownerUsername,keys:remoteKeys};
-          if(JSON.stringify(normalized)!==JSON.stringify(lastSyncedPayload)){
+          if(payloadSignature(normalized)!==payloadSignature(lastSyncedPayload)){
             ownerUsername=normalized.ownerUsername;
             applyKeys(remoteKeys);
             seedLegacySession();
