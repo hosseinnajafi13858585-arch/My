@@ -741,7 +741,42 @@ svg{max-width:100%;vertical-align:middle}
 .nav-tab.active svg{animation:mizanNavIcon .34s cubic-bezier(.2,.8,.2,1)}
 @keyframes mizanNavIcon{0%{transform:translateY(3px) scale(.82)}65%{transform:translateY(-2px) scale(1.12)}100%{transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce){#page-content>*{animation:none!important}.btn,.ib,.rb,.nav-tab,.month-card,.mzn-card,.mzn-more-item,.settings-row{transition:none!important}}
-</style></head>
+</style>
+<style id="mizan-premium-motion-v1">
+:root{--mzn-ease:cubic-bezier(.2,.75,.25,1);--mzn-duration:.28s}
+html{scroll-behavior:smooth}
+body{animation:mznBodyIn .5s ease both}
+#splash .splash-content{animation:mznContentFloat 5.5s ease-in-out infinite}
+#app{animation:mznAppIn .55s var(--mzn-ease) both}
+#page-content{transform-origin:50% 18%}
+#page-content>*{animation:mznSectionIn .42s var(--mzn-ease) both}
+#page-content>*:nth-child(2){animation-delay:.035s}
+#page-content>*:nth-child(3){animation-delay:.07s}
+#page-content>*:nth-child(4){animation-delay:.105s}
+#page-content>*:nth-child(5){animation-delay:.14s}
+.card,.stat-card,.mzn-card,.setting-card,.settings-card,.chart-card,.summary-card,.dash-card,.finance-card,.goal-card,.rem-card,.doc-card,.section-card,.panel-card,.feature-card,.widget-card{transition:transform .25s var(--mzn-ease),box-shadow .25s ease,border-color .25s ease,background .25s ease;transform:translateZ(0)}
+.card:hover,.stat-card:hover,.mzn-card:hover,.setting-card:hover,.settings-card:hover,.chart-card:hover,.summary-card:hover,.dash-card:hover,.finance-card:hover,.goal-card:hover,.rem-card:hover,.doc-card:hover,.section-card:hover,.panel-card:hover,.feature-card:hover,.widget-card:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(20,55,35,.11)}
+button,.btn,a[role=button],.nav-tab,.tab-btn,.icon-btn{transition:transform .2s var(--mzn-ease),box-shadow .2s ease,filter .2s ease,background-color .2s ease,border-color .2s ease}
+button:not(:disabled):hover,.btn:not(:disabled):hover,.nav-tab:hover,.tab-btn:hover{filter:brightness(1.035)}
+button:not(:disabled):active,.btn:not(:disabled):active,.nav-tab:active,.tab-btn:active{transform:scale(.965)}
+input,select,textarea{transition:border-color .2s ease,box-shadow .2s ease,background-color .2s ease}
+input:focus,select:focus,textarea:focus{outline:none;box-shadow:0 0 0 3px rgba(35,107,77,.12)}
+.global-nav{animation:mznNavIn .45s .12s var(--mzn-ease) both}
+.global-nav .nav-tab{will-change:transform}
+.modal,.modal-content,.dialog,.drawer,.toast,.dropdown-menu{animation:mznOverlayIn .24s var(--mzn-ease) both}
+table tbody tr{transition:background-color .18s ease}
+table tbody tr:hover{background:var(--th,rgba(35,107,77,.05))}
+.chart-container,canvas,svg.chart{transition:opacity .25s ease}
+@keyframes mznBodyIn{from{opacity:.92}to{opacity:1}}
+@keyframes mznAppIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes mznSectionIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes mznNavIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes mznOverlayIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes mznContentFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media(hover:none){.card:hover,.stat-card:hover,.mzn-card:hover,.setting-card:hover,.settings-card:hover,.chart-card:hover,.summary-card:hover,.dash-card:hover,.finance-card:hover,.goal-card:hover,.rem-card:hover,.doc-card:hover,.section-card:hover,.panel-card:hover,.feature-card:hover,.widget-card:hover{transform:none;box-shadow:var(--shc)}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+</style>
+</head>
 <body>
 <!-- Splash -->
 <div id="splash" role="status" aria-label="در حال بارگذاری">
@@ -2441,6 +2476,6 @@ document.addEventListener('DOMContentLoaded',function(){
   App.init();
 },false);
 </script>
-<script src="./mizan-enhancements.js?v=12"></script>
+<script src="./mizan-enhancements.js?v=13"></script>
 </body>
 </html>
