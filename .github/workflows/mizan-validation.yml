@@ -43,3 +43,9 @@ jobs:
         run: node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8')); console.log('manifest.webmanifest passed')"
       - name: Run application and PWA regression checks
         run: node scripts/validate.mjs
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.58.0
+          npx playwright install --with-deps chromium
+      - name: Run mobile and offline browser smoke tests
+        run: node scripts/browser-smoke.mjs
