@@ -2225,7 +2225,7 @@ var App=(function(){
   }
   function refresh(){navigate(_state.page);}
   function updateBadge(){try{var n=Reminders.pendingCount();document.querySelectorAll('.bdot').forEach(function(b){b.textContent=n;b.style.display=n>0?'grid':'none';});}catch(e){}}
-  function toggleTheme(){var nt=Store.getTheme()==='dark'?'light':'dark';Store.setTheme(nt);document.documentElement.setAttribute('data-theme',nt);var btn=document.getElementById('tb-theme');if(btn)btn.innerHTML=nt==='dark'?Icons.sun:Icons.moon;}
+  function toggleTheme(){var nt=Store.getTheme()==='dark'?'light':'dark';Store.setTheme(nt);document.documentElement.setAttribute('data-theme',nt);var btn=document.getElementById('tb-theme');if(btn)btn.innerHTML=nt==='dark'?Icons.sun:Icons.moon;try{window.parent.document.querySelectorAll('.global-nav').forEach(function(n){n.dataset.theme=nt;});}catch(e){}}
   function openMonth(y,mi){_state.year=y;_state.mi=mi;_state.page='month-detail';refresh();}
   function _startClock(){
     if(_clock)clearInterval(_clock);
@@ -2371,6 +2371,6 @@ document.addEventListener('DOMContentLoaded',function(){
   App.init();
 },false);
 </script>
-<script src="./mizan-enhancements.js?v=2"></script>
+<script src="./mizan-enhancements.js?v=3"></script>
 </body>
 </html>
