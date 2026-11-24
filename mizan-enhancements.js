@@ -569,16 +569,30 @@
         { id: 'documents', label: 'اسناد', icon: Icons.fileText },
         { id: 'more', label: 'بیشتر', icon: Icons.grid }
       ];
+      var activePage = tabs.some(function (x) { return x.id === page; }) ? page : 'more';
       tabs.forEach(function (t) {
         var b = document.createElement('button');
         b.type = 'button';
-        b.className = 'nav-tab' + (page === t.id ? ' active' : '');
+        b.className = 'nav-tab' + (activePage === t.id ? ' active' : '');
         b.dataset.page = t.id;
         b.innerHTML = t.icon + '<span>' + t.label + '</span>';
         b.onclick = function () { App.navigate(t.id); };
         nav.appendChild(b);
       });
       return nav;
+    };
+    var originalNavigate = App.navigate;
+    App.navigate = function (page) {
+      var result = originalNavigate.call(App, page);
+      try {
+        var doc = window.parent.document;
+        var core = ['dashboard', 'finance', 'market', 'documents'];
+        var active = core.indexOf(page) >= 0 ? page : 'more';
+        doc.querySelectorAll('.global-nav .nav-tab').forEach(function (tab) { tab.classList.toggle('active', tab.dataset.page === active); });
+        var nav = doc.querySelector('.global-nav');
+        if (nav) nav.dataset.theme = Store.getTheme() || 'light';
+      } catch (e) {}
+      return result;
     };
     UI.__mizanNavigationInstalled = true;
   }
