@@ -106,22 +106,26 @@
     return out;
   }
   function forecast(data) {
-    var t = data.today;
-    var days = Jalali.daysInMonth(t[0], t[1]);
-    var elapsed = Math.max(1, t[2]);
-    var stats = data.stats;
-    var projection = Math.round(stats.netSalary * days / elapsed);
+    var t = data.today, days = Jalali.daysInMonth(t[0], t[1]), elapsed = Math.max(1, t[2]), stats = data.stats;
+    var variableToDate = stats.netSalary - stats.fixedSalary;
+    var runRate = Math.round(stats.fixedSalary + variableToDate * days / elapsed);
     var prior = [];
     for (var i = 1; i <= 5; i++) {
       var serial = t[0] * 12 + (t[1] - 1) - i;
-      var y = Math.floor(serial / 12);
-      var m = serial % 12;
-      var month = Store.loadMonth(y, m);
-      var s = Payroll.compute(month, data.cfg);
+      var y = Math.floor(serial / 12), m = serial % 12;
+      var month = Store.loadMonth(y, m), s = Payroll.compute(month, data.cfg);
       if ((month.hours || []).length || (month.websiteSales || []).length || (month.storeSales || []).length) prior.push(s.netSalary);
     }
-    var average = prior.length ? Math.round(prior.reduce(function (a, b) { return a + b; }, 0) / prior.length) : null;
-    return { projected: projection, average: average, confidence: Math.min(95, Math.round(elapsed / days * 100)), sample: prior.length };
+    var average = prior.length ? Math.round(prior.reduce(function (x, y) { return x + y; }, 0) / prior.length) : null;
+    var projected = prior.length >= 3 ? Math.round(runRate * 0.7 + average * 0.3) : runRate;
+    var deviation = null;
+    if (prior.length >= 3) {
+      var variance = prior.reduce(function (x, y) { return x + Math.pow(y - average, 2); }, 0) / prior.length;
+      deviation = Math.round(Math.sqrt(variance));
+    }
+    return { projected: projected, average: average, sample: prior.length, elapsed: elapsed, days: days,
+      lower: deviation == null ? null : Math.max(0, projected - deviation),
+      upper: deviation == null ? null : projected + deviation };
   }
   function renderDashboard() {
     var d = payrollData();
@@ -144,11 +148,11 @@
       week.map(function (x) {
         var sh = Math.max(4, Math.round(x.sales / max * 100));
         var eh = Math.max(4, Math.round(x.expenses / max * 100));
-        return '<div class="mzn-week-col"><div class="mzn-bars"><i style="height:' + sh + '%" title="فروش"></i><b style="height:' + eh + '%" title="هزینه"></b></div><small>' + x.label + '</small></div>';
+        return '<div class="mzn-week-col" data-week-date="' + x.date + '"><div class="mzn-bars"><i style="height:' + sh + '%" title="فروش"></i><b style="height:' + eh + '%" title="هزینه"></b></div><small>' + x.label + '</small></div>';
       }).join('') +
       '</div><div class="mzn-week-legend"><span><i class="mzn-dot-sale"></i>فروش</span><span><i class="mzn-dot-exp"></i>هزینه</span><strong>فروش: ' + money(week.reduce(function (a, x) { return a + x.sales; }, 0)) + '</strong></div></div>' +
       '<div class="mzn-grid mzn-grid-two">' +
-      '<div class="mzn-panel"><div class="mzn-panel-head"><div><h3>پیش‌بینی پایان ماه</h3><p>بر اساس روند ثبت‌های این ماه</p></div>' + Icons.trendingUp + '</div><strong class="mzn-forecast-value">' + money(f.projected) + '</strong><p class="mzn-muted">برآورد حقوق خالص · اطمینان زمانی ' + f.confidence.toLocaleString('fa-IR') + '٪</p>' + (f.average != null ? '<p class="mzn-muted">میانگین ' + f.sample.toLocaleString('fa-IR') + ' ماه ثبت‌شده قبل: ' + money(f.average) + '</p>' : '<p class="mzn-muted">برای مقایسه تاریخی، اطلاعات ماه‌های بیشتری ثبت کن.</p>') + '</div>' +
+      '<div class="mzn-panel"><div class="mzn-panel-head"><div><h3>پیش‌بینی پایان ماه</h3><p>بر اساس روند ثبت‌های این ماه</p></div>' + Icons.trendingUp + '</div><strong class="mzn-forecast-value">' + money(f.projected) + '</strong><p class="mzn-muted">برآورد حقوق خالص · روز ' + f.elapsed.toLocaleString('fa-IR') + ' از ' + f.days.toLocaleString('fa-IR') + ' روز</p>' + (f.average != null ? '<p class="mzn-muted">میانگین ' + f.sample.toLocaleString('fa-IR') + ' ماه ثبت‌شده قبل: ' + money(f.average) + (f.lower != null ? ' · بازه تقریبی: ' + money(f.lower) + ' تا ' + money(f.upper) : '') + '</p>' : '<p class="mzn-muted">برای مقایسه تاریخی، اطلاعات ماه‌های بیشتری ثبت کن.</p>') + '</div>' +
       '<div class="mzn-panel"><div class="mzn-panel-head"><div><h3>هدف‌های فعال</h3><p>مانده تا رسیدن به هدف به‌صورت خودکار</p></div>' + Icons.target + '</div>' +
       (goals.length ? goals.slice(0, 3).map(function (g) {
         var target = num(g.targetAmount), saved = num(g.currentAmount), pct = target > 0 ? Math.min(100, saved / target * 100) : num(g.progress);
@@ -167,6 +171,7 @@
     root.querySelector('#mzn-go-calendar').onclick = function () { App.navigate('calendar'); };
     root.querySelector('#mzn-go-market').onclick = function () { App.navigate('market'); };
     root.querySelector('#mzn-go-assistant').onclick = function () { App.navigate('assistant'); };
+    root.querySelectorAll('[data-week-date]').forEach(function (bar) { bar.addEventListener('click', function () { App.openDayDetail(bar.dataset.weekDate); }); });
     loadFinanceOverview(root);
     return root;
   }
@@ -368,6 +373,16 @@
         list.querySelectorAll('[data-done]').forEach(function (b) {
           b.onclick = async function () {
             var row = rows.find(function (x) { return x.id === b.dataset.done; });
+            if (!row.completed && row.repeat_rule !== 'none' && row.due_at) {
+              var next = new Date(row.due_at);
+              if (row.repeat_rule === 'daily') next.setDate(next.getDate() + 1);
+              else if (row.repeat_rule === 'weekly') next.setDate(next.getDate() + 7);
+              else if (row.repeat_rule === 'monthly') next.setMonth(next.getMonth() + 1);
+              else if (row.repeat_rule === 'yearly') next.setFullYear(next.getFullYear() + 1);
+              var nextDate = next.getFullYear() + '-' + String(next.getMonth() + 1).padStart(2, '0') + '-' + String(next.getDate()).padStart(2, '0');
+              var repeatInsert = await s.client.from('mizan_reminders').insert({ user_id: s.user.id, title: row.title, note: row.note, due_at: next.toISOString(), due_date: nextDate, priority: row.priority, repeat_rule: row.repeat_rule });
+              if (repeatInsert.error) { notify('ساخت یادآوری بعدی انجام نشد: ' + repeatInsert.error.message); return; }
+            }
             var up = await s.client.from('mizan_reminders').update({ completed: !row.completed, completed_at: row.completed ? null : new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', row.id);
             if (up.error) notify(up.error.message); else load();
           };
@@ -410,6 +425,19 @@
       notify(p === 'granted' ? 'اجازه اعلان داده شد؛ اعلان‌ها هنگام بازبودن سایت بررسی می‌شوند.' : 'اجازه اعلان داده نشد.');
     };
     setTimeout(load, 0);
+    async function checkDueNotifications() {
+      if (!root.isConnected) { if (reminderTimer) clearInterval(reminderTimer); reminderTimer = null; return; }
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      try {
+        var s = await session(); if (!s.user) return;
+        var now = Date.now(), from = new Date(now - 60000).toISOString(), to = new Date(now + 60000).toISOString();
+        var due = await s.client.from('mizan_reminders').select('id,title,due_at').eq('completed', false).gte('due_at', from).lte('due_at', to);
+        if (due.error) return;
+        (due.data || []).forEach(function (x) { var key = 'mizan-notified-' + x.id; if (!localStorage.getItem(key)) { new Notification('یادآوری میزان', { body: x.title }); localStorage.setItem(key, String(Date.now())); } });
+      } catch (e) { console.warn('Reminder notification check failed', e); }
+    }
+    checkDueNotifications();
+    reminderTimer = setInterval(checkDueNotifications, 60000);
     return root;
   }
 
