@@ -2023,7 +2023,7 @@ var UI=(function(){
       var us=document.createElement('div');us.className='settings-section';us.innerHTML='<div class="settings-sec-hd">'+Icons.users+'<span>مدیریت کاربران</span><button class="btn btn-primary btn-sm" id="go-users" style="margin-right:auto">'+Icons.users+'<span>پنل کاربران</span></button></div><div style="padding:10px var(--sp3);font-size:12px;color:var(--txs)">برای مدیریت و تأیید کاربران، پنل کاربران را باز کنید.</div>';frag.appendChild(us);
       frag.appendChild(sec('داده‌ها',Icons.database,row('پشتیبان‌گیری','خروجی JSON','<button class="btn btn-ghost btn-sm" id="exp-btn">'+Icons.download+'<span>خروجی</span></button>')+row('بازیابی','وارد کردن JSON','<button class="btn btn-ghost btn-sm" id="imp-btn">'+Icons.upload+'<span>ورودی</span></button><input type="file" id="imp-file" accept=".json" style="display:none">')+row('چاپ گزارش','انتخاب ماه و چاپ','<button class="btn btn-ghost btn-sm" id="pr-sal">'+Icons.print+'<span>چاپ</span></button>')));
       var storSec=document.createElement('div');storSec.className='settings-section';storSec.innerHTML='<div class="settings-sec-hd">'+Icons.hdd+'<span>مصرف حافظه</span></div><div style="padding:var(--sp3)" id="stor-body">در حال محاسبه...</div>';frag.appendChild(storSec);
-    }else{frag.appendChild(sec('داده‌ها',Icons.database,row('چاپ گزارش','انتخاب ماه و چاپ','<button class="btn btn-ghost btn-sm" id="pr-sal">'+Icons.print+'<span>چاپ</span></button>')));}
+    }else{frag.appendChild(sec('داده‌ها',Icons.database,row('چاپ گزارش','انتخاب ماه و چاپ','<button class="btn btn-ghost btn-sm" id="pr-sal">'+Icons.print+'<span>چاپ</span></button>')));var storSec=document.createElement('div');storSec.className='settings-section';storSec.innerHTML='<div class="settings-sec-hd">'+Icons.hdd+'<span>مصرف حافظه</span></div><div style="padding:var(--sp3)" id="stor-body">در حال محاسبه...</div>';frag.appendChild(storSec);}
     frag.appendChild(sec('درباره',Icons.info,row('نسخه','workapp v'+Store.VER,'')+row('کاربر فعال',Auth.getUser()?escH(Auth.getUser().name):'مهمان','')+row('نقش',Auth.getUser()?Auth.getUser().role:'—','')));
     setTimeout(function(){
       var profileSave=document.getElementById('profile-name-save');if(profileSave)profileSave.addEventListener('click',function(){var field=document.getElementById('profile-name-input'),newName=String(field&&field.value||'').trim();if(!newName){Toast.error('نام نمایشی را وارد کن');return;}var current=Auth.getUser()||{};if(!current.username||!Auth.updateUser(current.username,{name:newName})){Toast.error('ذخیره نام انجام نشد');return;}current.name=newName;try{sessionStorage.setItem('workapp-auth',JSON.stringify(current));}catch(e){}window.MizanProfile=Object.assign({},window.MizanProfile||{},{username:profileUsername,name:newName});try{window.parent.postMessage({type:'mizan-profile-update',name:newName,username:profileUsername},location.origin);}catch(e){}Toast.success('نام نمایشی ذخیره شد');App.refresh();});
@@ -2041,22 +2041,64 @@ var UI=(function(){
       var imp=document.getElementById('imp-btn');if(imp)imp.addEventListener('click',function(){var f=document.getElementById('imp-file');if(f)f.click();});
       var impf=document.getElementById('imp-file');if(impf)impf.addEventListener('change',function(e){App.importData(e.target.files[0]);});
       var prs=document.getElementById('pr-sal');if(prs)prs.addEventListener('click',function(){App.openPrintDialog();});
-      if(Perms.isAdmin())renderStorMon();
+      renderStorMon();
     },50);
     return frag;
   }
   function renderStorMon(){
     var body=document.getElementById('stor-body');if(!body)return;
+    body.innerHTML='<div style="color:var(--txs);font-size:12px">در حال بررسی فضای ذخیره‌سازی...</div>';
+    var localBytes=0,keys=[],groups={};
     try{
-      var used=Store.storageSize(),quota=5*1024*1024;
-      try{navigator.storage.estimate().then(function(e){if(e&&e.usage)used=e.usage;if(e&&e.quota)quota=e.quota;_drawStor(body,used,quota);}).catch(function(){_drawStor(body,used,quota);});}
-      catch(e){_drawStor(body,used,quota);}
-    }catch(e){body.innerHTML='خطا در محاسبه';}
+      keys=LS.keys();
+      keys.forEach(function(k){
+        var v=LS.get(k,'')||'',bytes=(k.length+v.length)*2;
+        localBytes+=bytes;
+        var label=/user|auth|session|account/i.test(k)?'حساب و نشست':/month|pay|salary|finance|sale|expense|record|work|goal|remind|audit/i.test(k)?'اطلاعات مالی و سوابق':/setting|theme|config|pref/i.test(k)?'تنظیمات':/cache|temp|draft|recent/i.test(k)?'داده‌های موقت':'سایر داده‌ها';
+        groups[label]=(groups[label]||0)+bytes;
+      });
+    }catch(e){}
+    var estimatePromise=(navigator.storage&&navigator.storage.estimate)?navigator.storage.estimate().catch(function(){return null;}):Promise.resolve(null);
+    estimatePromise.then(function(est){
+      if(!body.isConnected)return;
+      var usage=est&&typeof est.usage==='number'?est.usage:null;
+      var quota=est&&typeof est.quota==='number'?est.quota:null;
+      _drawStor(body,{localBytes:localBytes,usage:usage,quota:quota,groups:groups,keyCount:keys.length});
+    });
   }
-  function _drawStor(body,used,quota){
-    var pct=Math.min(100,(used/quota)*100),cls=pct>=95?'sb-crit':pct>=80?'sb-warn':'sb-ok';
-    body.innerHTML='<div class="storage-stats"><div class="ss-cell"><div class="ss-lbl">مصرف</div><div class="ss-val">'+Fmt.fileSize(used)+'</div></div><div class="ss-cell"><div class="ss-lbl">باقی‌مانده</div><div class="ss-val">'+Fmt.fileSize(Math.max(0,quota-used))+'</div></div><div class="ss-cell"><div class="ss-lbl">درصد</div><div class="ss-val">'+pct.toFixed(1)+'%</div></div></div><div class="storage-bar"><div class="sb-fill '+cls+'" style="width:'+pct.toFixed(1)+'%"></div></div>'+(pct>=95?'<div class="ss-warn crit">'+Icons.alert+'هشدار بحرانی!</div>':pct>=80?'<div class="ss-warn warn">'+Icons.alert+'هشدار: بیش از ۸۰٪ استفاده شده</div>':'')+'<div style="margin-top:8px"><button class="btn btn-ghost btn-sm" id="stor-ref">'+Icons.refresh+'<span>بروزرسانی</span></button></div>';
+  function _drawStor(body,data){
+    var local=data.localBytes||0,usage=data.usage,quota=data.quota;
+    var pct=usage!==null&&quota?Math.min(100,usage/quota*100):null;
+    var cls=pct===null?'sb-ok':pct>=95?'sb-crit':pct>=80?'sb-warn':'sb-ok';
+    var groupRows=Object.keys(data.groups||{}).sort(function(a,b){return data.groups[b]-data.groups[a];}).map(function(k){
+      var n=data.groups[k],p=local?Math.min(100,n/local*100):0;
+      return '<div style="margin:9px 0"><div style="display:flex;justify-content:space-between;gap:8px;font-size:11px"><span>'+k+'</span><b>'+Fmt.fileSize(n)+'</b></div><div class="storage-bar" style="height:5px;margin-top:4px"><div class="sb-fill sb-ok" style="width:'+p.toFixed(1)+'%"></div></div></div>';
+    }).join('');
+    var cacheNote='پاک‌سازی فقط نسخه‌های قدیمی کش برنامه را حذف می‌کند؛ اطلاعات مالی و حساب کاربری پاک نمی‌شوند.';
+    body.innerHTML=
+      '<div class="storage-stats"><div class="ss-cell"><div class="ss-lbl">داده‌های محلی میزان</div><div class="ss-val">'+Fmt.fileSize(local)+'</div></div>'+
+      '<div class="ss-cell"><div class="ss-lbl">کل فضای مبدأ در مرورگر</div><div class="ss-val">'+(usage===null?'نامشخص':Fmt.fileSize(usage))+'</div></div>'+
+      '<div class="ss-cell"><div class="ss-lbl">ظرفیت گزارش‌شده مرورگر</div><div class="ss-val">'+(quota===null?'نامشخص':Fmt.fileSize(quota))+'</div></div>'+
+      '<div class="ss-cell"><div class="ss-lbl">تعداد کلیدهای ذخیره‌شده</div><div class="ss-val">'+Number(data.keyCount||0).toLocaleString('fa-IR')+'</div></div></div>'+
+      (pct===null?'':'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--txs);margin:7px 0"><span>سهم مصرف از ظرفیت مبدأ</span><b>'+pct.toFixed(1)+'٪</b></div><div class="storage-bar"><div class="sb-fill '+cls+'" style="width:'+pct.toFixed(1)+'%"></div></div>')+
+      '<div style="font-weight:700;font-size:12px;margin:15px 0 5px">جزئیات داده‌های محلی میزان</div>'+
+      (groupRows||'<div style="font-size:12px;color:var(--txs)">هنوز داده‌ای ذخیره نشده است.</div>')+
+      '<div style="font-size:11px;line-height:1.8;color:var(--txs);margin-top:12px">'+cacheNote+'<br>فضای کل مرورگر ممکن است شامل فایل‌های کش، دیتابیس‌های مرورگر و داده‌های سایر بخش‌های همین مبدأ باشد؛ بنابراین با حجم داده‌های محلی میزان برابر نیست.</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:13px"><button class="btn btn-ghost btn-sm" id="stor-ref">'+Icons.refresh+'<span>محاسبه مجدد</span></button><button class="btn btn-ghost btn-sm" id="stor-clean">'+Icons.trash+'<span>پاک‌سازی کش قدیمی</span></button></div>';
     var ref=document.getElementById('stor-ref');if(ref)ref.addEventListener('click',renderStorMon);
+    var clean=document.getElementById('stor-clean');
+    if(clean)clean.addEventListener('click',function(){
+      if(!('caches' in window)){Toast.error('مدیریت کش در این مرورگر پشتیبانی نمی‌شود');return;}
+      if(!confirm('فقط نسخه‌های قدیمی کش میزان پاک شوند؟ اطلاعات مالی، سوابق، تنظیمات و حساب کاربری حذف نمی‌شوند.'))return;
+      clean.disabled=true;
+      caches.keys().then(function(names){
+        var old=names.filter(function(n){return /^mizan-shell-v\\d+$/.test(n)&&n!=='mizan-shell-v23';});
+        return Promise.all(old.map(function(n){return caches.delete(n);})).then(function(done){
+          Toast.success(done.filter(Boolean).length.toLocaleString('fa-IR')+' کش قدیمی پاک شد');
+          renderStorMon();
+        });
+      }).catch(function(){Toast.error('پاک‌سازی کش انجام نشد');clean.disabled=false;});
+    });
   }
   function renderUsers(){
     if(!Perms.isAdmin()){var d=document.createDocumentFragment();var e=document.createElement('div');e.className='empty';e.innerHTML=Icons.shield+'<p>دسترسی فقط برای مدیران</p>';d.appendChild(e);return d;}
