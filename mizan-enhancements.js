@@ -433,7 +433,7 @@
         var now = Date.now(), from = new Date(now - 60000).toISOString(), to = new Date(now + 60000).toISOString();
         var due = await s.client.from('mizan_reminders').select('id,title,due_at').eq('completed', false).gte('due_at', from).lte('due_at', to);
         if (due.error) return;
-        (due.data || []).forEach(function (x) { var key = 'mizan-notified-' + x.id; if (!localStorage.getItem(key)) { new Notification('یادآوری میزان', { body: x.title }); localStorage.setItem(key, String(Date.now())); } });
+        (due.data || []).forEach(function (x) { var key = 'mizan-notified-' + x.id; if (!localStorage.getItem(key)) { if (navigator.serviceWorker && navigator.serviceWorker.ready) navigator.serviceWorker.ready.then(function (reg) { return reg.showNotification('یادآوری میزان', { body: x.title, tag: key }); }).catch(function () { new Notification('یادآوری میزان', { body: x.title }); }); else new Notification('یادآوری میزان', { body: x.title }); localStorage.setItem(key, String(Date.now())); } });
       } catch (e) { console.warn('Reminder notification check failed', e); }
     }
     checkDueNotifications();
@@ -499,7 +499,8 @@
     var goals = Goals.load();
     var rems = Reminders.load().filter(function (x) { return !x.completed; });
     if (/حقوق|دستمزد|خالص/.test(q)) return 'حقوق خالص ثبت‌شده این ماه ' + money(s.netSalary) + ' است. حقوق ناخالص ' + money(s.grossSalary) + ' و کسورات ' + money(s.totalDeductions) + ' است.';
-    if (/فروش|درآمد/.test(q)) return 'فروش ثبت‌شده این ماه ' + money(s.totalSales) + ' است؛ فروش وب‌سایت ' + money(s.websiteSales) + ' و فروش فروشگاه ' + money(s.storeSales) + ' است.';
+    if (/فروش/.test(q)) return 'فروش ثبت‌شده این ماه ' + money(s.totalSales) + ' است؛ فروش وب‌سایت ' + money(s.websiteSales) + ' و فروش فروشگاه ' + money(s.storeSales) + ' است.';
+    if (/درآمد/.test(q)) return 'حقوق خالص محاسبه‌شده این ماه ' + money(s.netSalary) + ' و فروش ثبت‌شده ' + money(s.totalSales) + ' است. این دو عدد جدا از هم نمایش داده شده‌اند تا با هم اشتباه نشوند.';
     if (/هزینه|خرج/.test(q)) return 'هزینه‌های ثبت‌شده این ماه ' + money(s.totalExpenses) + ' و کسورات حقوق ' + money(s.totalDeductions) + ' است.';
     if (/پیش.?بین|آینده|آخر ماه/.test(q)) return 'برآورد ساده حقوق خالص پایان ماه ' + money(f.projected) + ' است. این تخمین از مقدار ثبت‌شده تا امروز و تعداد روزهای ماه محاسبه شده؛ تضمین یا توصیه مالی نیست.';
     if (/هدف|پس.?انداز/.test(q)) {
