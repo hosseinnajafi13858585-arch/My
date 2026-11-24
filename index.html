@@ -73,7 +73,7 @@ input:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.14)}
   function setMode(next){mode=next;document.getElementById('heading').textContent=next==='signup'?'ساخت حساب مالک':next==='forgot'?'بازیابی رمز عبور':'ورود به فضای شخصی';document.getElementById('description').textContent=next==='signup'?'این ثبت‌نام فقط برای اولین مالک پروژه فعال است. بعد از ثبت حساب، ساخت حساب جدید بسته می‌شود.':next==='forgot'?'لینک بازیابی رمز به ایمیل مالک ارسال می‌شود.':'اطلاعات مدیریت کار و امور مالی فقط برای حساب مالک در دسترس است.';submitBtn.textContent=next==='signup'?'ساخت حساب و ورود':next==='forgot'?'ارسال لینک بازیابی':'ورود امن';signupBtn.classList.toggle('hidden',next!=='login');forgotBtn.classList.toggle('hidden',next!=='login');document.getElementById('password').classList.toggle('hidden',next==='forgot');document.querySelector('label[for="password"]').classList.toggle('hidden',next==='forgot');document.getElementById('password').required=next!=='forgot';say('');}
   async function ownerClaimed(){var r=await supa().from('app_owner').select('singleton_id').eq('singleton_id',1).maybeSingle();if(r.error)throw r.error;return !!r.data;}
   async function verifyOwner(u){var r=await supa().from('app_owner').select('user_id').eq('user_id',u.id).maybeSingle();if(r.error)throw r.error;return !!r.data;}
-  function safeKeys(){var out={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(!k||k.indexOf('workapp-')!==0)continue;if(['workapp-users','workapp-auth','workapp-super','workapp-cloud-sync-v1','workapp-legacy-auth-backup'].indexOf(k)>=0)continue;out[k]=localStorage.getItem(k);}return out;}
+  function safeKeys(){var out={};for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(!k||k.indexOf('workapp-')!==0)continue;if(['workapp-users','workapp-auth','workapp-super','workapp-cloud-sync-v1','workapp-legacy-auth-backup'].indexOf(k)>=0)continue;if(k.indexOf('workapp-u-')===0&&k.indexOf('workapp-u-'+ownerUsername+'-')!==0)continue;out[k]=localStorage.getItem(k);}return out;}
   function legacyOwnerName(){try{var s=localStorage.getItem('workapp-super');if(s)return s;var u=JSON.parse(localStorage.getItem('workapp-users')||'[]');var a=u.find(function(x){return x.role==='superadmin'||x.isSuper;})||u[0];if(a&&a.username)return a.username;}catch(e){}return 'owner';}
   function applyKeys(keys){var remove=[];for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf('workapp-')===0&&['workapp-users','workapp-auth','workapp-super','workapp-cloud-sync-v1','workapp-legacy-auth-backup'].indexOf(k)<0)remove.push(k);}remove.forEach(function(k){localStorage.removeItem(k);});Object.keys(keys||{}).forEach(function(k){if(k.indexOf('workapp-')===0&&typeof keys[k]==='string')localStorage.setItem(k,keys[k]);});}
   function seedLegacySession(){
@@ -90,8 +90,8 @@ input:focus{border-color:#818cf8;box-shadow:0 0 0 3px rgba(129,140,248,.14)}
     var r=await supa().from('app_data').select('payload').eq('user_id',owner.id).maybeSingle();if(r.error)throw r.error;
     var remote=r.data&&r.data.payload&&typeof r.data.payload==='object'?r.data.payload:{};
     var remoteKeys=remote.keys&&typeof remote.keys==='object'?remote.keys:{};
-    var localKeys=safeKeys();
     ownerUsername=String(remote.ownerUsername||legacyOwnerName()||'owner').replace(/[^a-zA-Z0-9_]/g,'').slice(0,32)||'owner';
+    var localKeys=safeKeys();
     var merged={};Object.keys(remoteKeys).forEach(function(k){merged[k]=remoteKeys[k];});
     Object.keys(localKeys).forEach(function(k){if(!Object.prototype.hasOwnProperty.call(merged,k))merged[k]=localKeys[k];});
     applyKeys(merged);seedLegacySession();
