@@ -914,8 +914,9 @@ var Store=(function(){
     return{items:cnt};
   }
   function migrateToUserNamespace(adminUsername){
-    if(LS.get(MKEY,null))return 0;
     var moved=0,pfx=G+'u-'+adminUsername+'-';
+    try{LS.del(pfx+'ideas');LS.del(pfx+'articles');LS.del('workapp-ideas');LS.del('workapp-articles');}catch(e){}
+    if(LS.get(MKEY,null))return 0;
     try{
       var legacy=LS.keys().filter(function(k){return /^workapp-\d{4}-/.test(k)&&k.indexOf('-u-')<0;});
       legacy.forEach(function(k){var nk=pfx+k.replace('workapp-','');if(!LS.get(nk,null))LS.set(nk,LS.get(k,''));LS.del(k);moved++;});
