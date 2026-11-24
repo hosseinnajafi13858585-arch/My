@@ -101,9 +101,17 @@ try{
   if(!offlineAppText.trim()) throw new Error('Authenticated offline app shell did not render');
   const pageSections=await appFrame.locator('#page-content > *').count();
   if(pageSections<1) throw new Error('Offline dashboard content did not render');
+  const routes=['today','months','month-detail','reminders','records','finance','achievements','settings','users','audit','dashboard','market','documents','assistant','reminders-db','calendar','more'];
+  for(const route of routes){
+    await appFrame.locator('#app').evaluate((el,name)=>window.App.navigate(name),route);
+    const sectionCount=await appFrame.locator('#page-content').evaluate(el=>el.children.length);
+    if(sectionCount<1)throw new Error('App route did not render: '+route);
+    const routeText=await appFrame.locator('#page-content').innerText();
+    if(routeText.includes('خطا در بارگذاری صفحه'))throw new Error('App route threw a render error: '+route);
+  }
 
   if(pageErrors.length) throw new Error('Browser runtime errors: '+pageErrors.join(' | '));
-  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,authenticatedOfflineDashboard:true,pageSections,pageErrors},null,2));
+  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,authenticatedOfflineDashboard:true,pageSections,routeCount:routes.length,pageErrors},null,2));
 } finally {
   if(browser) await browser.close();
   await new Promise(resolve=>server.close(resolve));
