@@ -880,8 +880,15 @@ var Store=(function(){
     if(!s.commissionTiers||!Array.isArray(s.commissionTiers)){
       s.commissionTiers=[];
       if(s.commissionPct!=null&&!isNaN(s.commissionPct)&&s.commissionPct>0){
-        s.commissionTiers.push({minSales:0,pct:parseFloat(s.commissionPct)});
+        s.commissionTiers.push({minSales:0,maxSales:null,pct:parseFloat(s.commissionPct)});
       }
+    }else{
+      // Preserve the old threshold behavior: each legacy tier ends just before the next minimum.
+      var legacy=s.commissionTiers.slice().sort(function(a,b){return Number(a.minSales)-Number(b.minSales);});
+      legacy.forEach(function(t,i){
+        if(!Object.prototype.hasOwnProperty.call(t,'maxSales'))t.maxSales=i<legacy.length-1?Number(legacy[i+1].minSales)-1:null;
+      });
+      s.commissionTiers=legacy;
     }
     return s;
   }
@@ -1130,12 +1137,6 @@ var CommissionTiers=(function(){
     var sorted=tiers.map(function(t){
       return{minSales:Math.max(0,Number(t.minSales)||0),maxSales:(t.maxSales==null||t.maxSales==='')?null:Math.max(0,Number(t.maxSales)||0),pct:Math.max(0,Number(t.pct)||0)};
     }).filter(function(t){return t.pct>0;}).sort(function(a,b){return a.minSales-b.minSales;});
-    // Backward compatibility: old tiers had only a minimum threshold.
-    for(var i=0;i<sorted.length;i++){
-      if(sorted[i].maxSales==null&&i<sorted.length-1&&tiers.some(function(t){return t.minSales===sorted[i].minSales&&t.maxSales==null;})){
-        sorted[i].maxSales=sorted[i+1].minSales-1;
-      }
-    }
     return sorted;
   }
   function validate(tiers){
