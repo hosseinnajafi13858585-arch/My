@@ -730,7 +730,7 @@ svg{max-width:100%;vertical-align:middle}
 .mizan-footer-brand{display:grid;place-items:center;width:34px;height:34px;border-radius:12px;background:linear-gradient(145deg,#236b4d,#a8c5a0);color:#fff;box-shadow:0 5px 15px rgba(35,107,77,.18);flex:0 0 auto}
 .mizan-footer-brand svg{width:22px;height:22px;max-width:none}
 .mizan-footer-meta{direction:rtl;text-align:right;margin-left:auto;color:var(--txs);font-size:11px}
-.settings-row .sr-ctrl strong{font-size:12px;max-width:180px;overflow-wrap:anywhere;color:var(--pri)}
+.settings-row .sr-ctrl strong{font-size:12px;max-width:180px;overflow-wrap:anywhere;color:var(--pri)}.profile-name-control{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}.profile-name-control .settings-input{width:min(145px,42vw)}
 #page-content{min-height:45vh;will-change:opacity,transform}
 #page-content>*{animation:mizanPageIn .38s cubic-bezier(.2,.75,.25,1) both;transform-origin:50% 10%}
 @keyframes mizanPageIn{from{opacity:0;transform:translate3d(0,12px,0) scale(.992);filter:blur(3px)}to{opacity:1;transform:translate3d(0,0,0) scale(1);filter:blur(0)}}
@@ -2001,8 +2001,8 @@ var UI=(function(){
     var cfg=Store.loadSettings();
     function sec(title,icon,rows){var s=document.createElement('div');s.className='settings-section';s.innerHTML='<div class="settings-sec-hd">'+icon+'<span>'+title+'</span></div>'+rows;return s;}
     function row(label,sub,ctrl){return'<div class="settings-row"><div class="sr-info"><div class="sr-lbl">'+label+'</div><div class="sr-sub">'+sub+'</div></div><div class="sr-ctrl">'+ctrl+'</div></div>';}
-    var activeUser=Auth.getUser()||{};
-    frag.appendChild(sec('حساب کاربری',Icons.user,row('نام کاربری','شناسه ورود شما','<strong dir="ltr">@'+escH(activeUser.username||'—')+'</strong>')+row('نام نمایشی','نامی که در میزان نمایش داده می‌شود','<strong>'+escH(activeUser.name||activeUser.username||'—')+'</strong>')));
+    var activeUser=Auth.getUser()||{},profile=window.MizanProfile||{},profileUsername=profile.username||activeUser.username||'—',profileName=profile.name||activeUser.name||profileUsername;
+    frag.appendChild(sec('حساب کاربری',Icons.user,row('نام کاربری','شناسه حساب شما','<strong dir="ltr">@'+escH(profileUsername)+'</strong>')+row('نام نمایشی','نامی که در میزان نمایش داده می‌شود','<strong>'+escH(profileName)+'</strong>')+row('ویرایش نام','نام دلخواه خودت را ثبت کن','<div class="profile-name-control"><input class="settings-input" id="profile-name-input" maxlength="48" value="'+escH(profileName)+'"><button class="btn btn-primary btn-sm" id="profile-name-save">'+Icons.save+'<span>ذخیره</span></button></div>')));
     frag.appendChild(sec('تنظیمات حقوق',Icons.dollar,row('حقوق پایه (ماهانه)','پیش‌فرض برای ماه‌های جدید','<input type="number" class="settings-input" id="cfg-fixedSalary" value="'+cfg.fixedSalary+'"><span style="font-size:12px;color:var(--txs)">تومان</span>')+row('نرخ ساعتی','دستمزد به ازای هر ساعت','<input type="number" class="settings-input" id="cfg-hourlyRate" value="'+cfg.hourlyRate+'"><span style="font-size:12px;color:var(--txs)">تومان/h</span>')));
     /* Commission Tiers section */
     var tiers=cfg.commissionTiers||[];
@@ -2026,6 +2026,7 @@ var UI=(function(){
     }else{frag.appendChild(sec('داده‌ها',Icons.database,row('چاپ گزارش','انتخاب ماه و چاپ','<button class="btn btn-ghost btn-sm" id="pr-sal">'+Icons.print+'<span>چاپ</span></button>')));}
     frag.appendChild(sec('درباره',Icons.info,row('نسخه','workapp v'+Store.VER,'')+row('کاربر فعال',Auth.getUser()?escH(Auth.getUser().name):'مهمان','')+row('نقش',Auth.getUser()?Auth.getUser().role:'—','')));
     setTimeout(function(){
+      var profileSave=document.getElementById('profile-name-save');if(profileSave)profileSave.addEventListener('click',function(){var field=document.getElementById('profile-name-input'),newName=String(field&&field.value||'').trim();if(!newName){Toast.error('نام نمایشی را وارد کن');return;}var current=Auth.getUser()||{};if(!current.username||!Auth.updateUser(current.username,{name:newName})){Toast.error('ذخیره نام انجام نشد');return;}current.name=newName;try{sessionStorage.setItem('workapp-auth',JSON.stringify(current));}catch(e){}window.MizanProfile=Object.assign({},window.MizanProfile||{},{username:profileUsername,name:newName});try{window.parent.postMessage({type:'mizan-profile-update',name:newName,username:profileUsername},location.origin);}catch(e){}Toast.success('نام نمایشی ذخیره شد');App.refresh();});
       ['fixedSalary','hourlyRate'].forEach(function(k){var el=document.getElementById('cfg-'+k);if(el)el.addEventListener('change',function(){var v=parseFloat(el.value)||0;var c=Store.loadSettings();c[k]=v;Store.saveSettings(c);Toast.success('ذخیره شد');});});
       var addTierBtn=document.getElementById('add-tier');if(addTierBtn)addTierBtn.addEventListener('click',function(){App.openTierForm();});
       var tierSecEl=tierSec;
@@ -2403,6 +2404,6 @@ document.addEventListener('DOMContentLoaded',function(){
   App.init();
 },false);
 </script>
-<script src="./mizan-enhancements.js?v=9"></script>
+<script src="./mizan-enhancements.js?v=10"></script>
 </body>
 </html>
