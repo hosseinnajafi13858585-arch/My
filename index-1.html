@@ -751,7 +751,7 @@ function faDigits(v){return String(v==null?'':v).replace(/[0-9]/g,function(d){re
   function parse(s){if(!s)return null;var normalized=String(s).replace(/[۰-۹٠-٩]/g,function(ch){var p='۰۱۲۳۴۵۶۷۸۹'.indexOf(ch);return p>=0?String(p):String('٠١٢٣٤٥٦٧٨٩'.indexOf(ch));});var m=normalized.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);if(!m)return null;var y=+m[1],mo=+m[2],d=+m[3];return mo>=1&&mo<=12&&d>=1&&d<=daysInMonth(y,mo)?[y,mo,d]:null;}
   var MONTHS=[{fa:'فروردین',en:'Farvardin'},{fa:'اردیبهشت',en:'Ordibehesht'},{fa:'خرداد',en:'Khordad'},{fa:'تیر',en:'Tir'},{fa:'مرداد',en:'Mordad'},{fa:'شهریور',en:'Shahrivar'},{fa:'مهر',en:'Mehr'},{fa:'آبان',en:'Aban'},{fa:'آذر',en:'Azar'},{fa:'دی',en:'Dey'},{fa:'بهمن',en:'Bahman'},{fa:'اسفند',en:'Esfand'}];
   var WDS=['ش','ی','د','س','چ','پ','ج'],WDSF=['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنج‌شنبه','جمعه'];
-  return{toGregorian:toGregorian,toJalali:toJalali,today:today,isLeap:isLeap,daysInMonth:daysInMonth,weekday:weekday,pad:pad,fmt:fmt,parse:parse,MONTHS:MONTHS,WDS:WDS,WDSF:WDSF};
+  return{toGregorian:toGregorian,toJalali:toJalali,today:today,isLeap:isLeap,daysInMonth:daysInMonth,weekday:weekday,pad:pad,fmt:fmt,parse:parse,faDigits:faDigits,MONTHS:MONTHS,WDS:WDS,WDSF:WDSF};
 })();
 var Icons=(function(){
   function w(p){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';}
@@ -1381,7 +1381,7 @@ var DatePicker=(function(){
   }
   function _render(){
     if(!_popup)return;
-    var mn=Jalali.MONTHS[_vm-1].fa+' '+faDigits(_vy);
+    var mn=Jalali.MONTHS[_vm-1].fa+' '+Jalali.faDigits(_vy);
     _popup.innerHTML='<div class="dp-hdr"><button class="dp-nav" data-n="p">'+Icons.chevR+'</button><div class="dp-month-title">'+mn+' '+_vy+'</div><button class="dp-nav" data-n="n">'+Icons.chevL+'</button></div><div class="dp-wds">'+Jalali.WDS.map(function(w,i){return'<span class="'+(i===6?'fri':'')+'">'+w+'</span>';}).join('')+'</div><div class="dp-days" id="dpd"></div><div class="dp-footer"><button class="dp-today-btn">امروز</button><button data-a="clear">پاک</button><button data-a="close">بستن</button></div>';
     _renderDays();
     _popup.querySelectorAll('.dp-nav').forEach(function(b){b.addEventListener('click',function(){if(b.dataset.n==='p'){if(_vm===1){_vm=12;_vy--;}else _vm--;}else{if(_vm===12){_vm=1;_vy++;}else _vm++;}_render();});});
@@ -1395,7 +1395,7 @@ var DatePicker=(function(){
     for(var d=1;d<=dim;d++){
       var wd=Jalali.weekday(_vy,_vm,d),isT=(t[0]===_vy&&t[1]===_vm&&t[2]===d),isSel=(_sel&&_sel[0]===_vy&&_sel[1]===_vm&&_sel[2]===d);
       var cls='dp-day'+(wd===6?' fri':'')+(isT?' td':'')+(isSel?' sel':'');
-      html+='<div class="'+cls+'" data-d="'+d+'">'+faDigits(d)+'</div>';
+      html+='<div class="'+cls+'" data-d="'+d+'"'> '+Jalali.faDigits(d)+'</div>';
     }
     g.innerHTML=html;
     g.querySelectorAll('.dp-day[data-d]').forEach(function(el){el.addEventListener('click',function(){var d=parseInt(el.dataset.d,10);_sel=[_vy,_vm,d];_renderDays();if(_cb)_cb(Jalali.fmt(_vy,_vm,d));close();});});
@@ -2071,12 +2071,12 @@ var Finance=(function(){
   var client=null,user=null,tab='receivables',data={receivables:[],debts:[],plans:[],installments:[]},busy=false;
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});}
   function money(v){return Number(v||0).toLocaleString('fa-IR')+' تومان';}
-  function dbDateToJalali(value){if(!value)return'';var m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return'';var j=Jalali.toJalali(+m[1],+m[2],+m[3]);return faDigits(Jalali.fmt(j[0],j[1],j[2]));}
+  function dbDateToJalali(value){if(!value)return'';var m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return'';var j=Jalali.toJalali(+m[1],+m[2],+m[3]);return Jalali.faDigits(Jalali.fmt(j[0],j[1],j[2]));}
   function jalaliToDbDate(value){var p=Jalali.parse(value);if(!p)return'';var g=Jalali.toGregorian(p[0],p[1],p[2]);return String(g[0]).padStart(4,'0')+'-'+String(g[1]).padStart(2,'0')+'-'+String(g[2]).padStart(2,'0');}
   function todayDbDate(){var t=Jalali.today();return jalaliToDbDate(Jalali.fmt(t[0],t[1],t[2]));}
   function addMonthsDbDate(value,months){var m=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return todayDbDate();var j=Jalali.toJalali(+m[1],+m[2],+m[3]),serial=j[0]*12+(j[1]-1)+months,jy=Math.floor(serial/12),jm=(serial%12)+1,jd=Math.min(j[2],Jalali.daysInMonth(jy,jm));return jalaliToDbDate(Jalali.fmt(jy,jm,jd));}
   function readDateValue(root,id){var h=root.querySelector('#'+id+'-iso');if(h)return h.value;var e=root.querySelector('#'+id);return e?e.value:'';}
-  function bindFinanceDates(modalRoot){['ff-date','ff-due','fp-date','fip-date','fei-date'].forEach(function(id){var btn=modalRoot.querySelector('#'+id);if(!btn||btn.dataset.jalaliBound)return;btn.dataset.jalaliBound='1';var hidden=document.createElement('input');hidden.type='hidden';hidden.id=id+'-iso';hidden.value=jalaliToDbDate(btn.textContent.trim());modalRoot.appendChild(hidden);bindDp(id,btn.textContent.trim(),function(v){hidden.value=jalaliToDbDate(v);if(v)btn.textContent=faDigits(v);});});}
+  function bindFinanceDates(modalRoot){['ff-date','ff-due','fp-date','fip-date','fei-date'].forEach(function(id){var btn=modalRoot.querySelector('#'+id);if(!btn||btn.dataset.jalaliBound)return;btn.dataset.jalaliBound='1';var hidden=document.createElement('input');hidden.type='hidden';hidden.id=id+'-iso';hidden.value=jalaliToDbDate(btn.textContent.trim());modalRoot.appendChild(hidden);bindDp(id,btn.textContent.trim(),function(v){hidden.value=jalaliToDbDate(v);if(v)btn.textContent=Jalali.faDigits(v);});});}
   function num(v){return Math.max(0,Number(v)||0);}
   function initClient(){if(!client){if(!window.supabase||!window.supabase.createClient)throw new Error('کتابخانه اتصال بارگذاری نشد؛ اینترنت را بررسی کنید.');client=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});}return client;}
   async function authState(){var c=initClient(),r=await c.auth.getSession();user=r.data&&r.data.session?r.data.session.user:null;return user;}
