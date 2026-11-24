@@ -7,6 +7,10 @@
   var marketTimer = null;
   var reminderTimer = null;
   var marketCache = null;
+  if (window.Icons) {
+    var iconAliases = { sparkles: 'star', fileText: 'info', image: 'activity', externalLink: 'upload', bellRing: 'bell', send: 'check', trendingUp: 'activity', arrowDownLeft: 'chevR', arrowUpRight: 'chevL', chevronRight: 'chevR', chevronLeft: 'chevL' };
+    Object.keys(iconAliases).forEach(function (name) { if (!Icons[name]) Icons[name] = Icons[iconAliases[name]] || ''; });
+  }
 
   function h(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
