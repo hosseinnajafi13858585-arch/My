@@ -2087,7 +2087,7 @@ var UI=(function(){
       if(!confirm('فقط نسخه‌های قدیمی کش میزان پاک شوند؟ اطلاعات مالی، سوابق، تنظیمات و حساب کاربری حذف نمی‌شوند.'))return;
       clean.disabled=true;
       caches.keys().then(function(names){
-        var old=names.filter(function(n){return /^mizan-shell-v\\d+$/.test(n)&&n!=='mizan-shell-v24';});
+        var old=names.filter(function(n){return /^mizan-shell-v\\d+$/.test(n)&&n!=='mizan-shell-v25';});
         return Promise.all(old.map(function(n){return caches.delete(n);})).then(function(done){
           Toast.success(done.filter(Boolean).length.toLocaleString('fa-IR')+' کش قدیمی پاک شد');
           renderStorMon();
@@ -2441,6 +2441,6 @@ document.addEventListener('DOMContentLoaded',function(){
   App.init();
 },false);
 </script>
-<script src="./mizan-enhancements.js?v=11"></script>
+<script src="./mizan-enhancements.js?v=12"></script>
 </body>
 </html>
