@@ -70,6 +70,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--sc);border-radius:7px;border:2px solid transparent;background-clip:padding-box}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+button svg{width:16px;height:16px;max-width:16px;max-height:16px;flex-shrink:0}.btn svg{width:15px;height:15px;max-width:15px;max-height:15px}.btn-sm svg{width:13px;height:13px;max-width:13px;max-height:13px}.brand-logo svg{width:18px;height:18px;max-width:18px;max-height:18px}.auth-logo svg{width:32px;height:32px;max-width:32px;max-height:32px}.sec-hd svg,.settings-sec-hd svg{width:15px;height:15px;max-width:15px;max-height:15px}
 input,select,textarea{font-family:inherit;color:inherit}
 a{color:var(--pri);text-decoration:none}
 /* ===== SPLASH ===== */
@@ -800,7 +801,7 @@ var Jalali=(function(){
   function isLeap(jy){return(_yearStart(jy+1)-_yearStart(jy))===366*DAY;}
   function daysInMonth(jy,jm){return jm>=1&&jm<=6?31:(jm>=7&&jm<=11?30:(jm===12?(isLeap(jy)?30:29):0));}
   function weekday(jy,jm,jd){var g=toGregorian(jy,jm,jd);return(new Date(Date.UTC(g[0],g[1]-1,g[2])).getUTCDay()+1)%7;}
-  function today(){var d=new Date();return toJalali(d.getFullYear(),d.getMonth()+1,d.getDate());}
+  function today(){var p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),o={};p.forEach(function(x){if(x.type==='year'||x.type==='month'||x.type==='day')o[x.type]=Number(x.value);});return toJalali(o.year,o.month,o.day);}
   function pad(n){return n<10?'0'+n:''+n;}
   function fmt(jy,jm,jd){return jy+'/'+pad(jm)+'/'+pad(jd);}
 function faDigits(v){return String(v==null?'':v).replace(/[0-9]/g,function(d){return '۰۱۲۳۴۵۶۷۸۹'[Number(d)];});}
@@ -879,8 +880,8 @@ var Fmt=(function(){
   function weekdayOf(s){var p=Jalali.parse(s);return p?Jalali.WDSF[Jalali.weekday(p[0],p[1],p[2])]:'—';}
   function fileSize(b){b=b||0;if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(2)+' MB';}
   function to24h(t){if(!t)return'';var m=t.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/i);if(!m)return t;var h=parseInt(m[1],10),mn=m[2],ap=(m[3]||'').toLowerCase();if(ap==='pm'&&h!==12)h+=12;if(ap==='am'&&h===12)h=0;return String(h).padStart(2,'0')+':'+mn;}
-  function isoToJalali(iso){if(!iso)return'—';try{var d=new Date(iso),j=Jalali.toJalali(d.getFullYear(),d.getMonth()+1,d.getDate());return Jalali.fmt(j[0],j[1],j[2]);}catch(e){return'—';}}
-  function isoToJalaliTime(iso){if(!iso)return'—';try{var d=new Date(iso),j=Jalali.toJalali(d.getFullYear(),d.getMonth()+1,d.getDate());return Jalali.fmt(j[0],j[1],j[2])+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}catch(e){return'—';}}
+  function isoToJalali(iso){if(!iso)return'—';try{var p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(iso)),o={};p.forEach(function(x){if(x.type==='year'||x.type==='month'||x.type==='day')o[x.type]=Number(x.value);});var j=Jalali.toJalali(o.year,o.month,o.day);return Jalali.fmt(j[0],j[1],j[2]);}catch(e){return'—';}}
+  function isoToJalaliTime(iso){if(!iso)return'—';try{var d=new Date(iso),p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(d),o={};p.forEach(function(x){if(['year','month','day','hour','minute'].indexOf(x.type)>=0)o[x.type]=Number(x.value);});var j=Jalali.toJalali(o.year,o.month,o.day);return Jalali.fmt(j[0],j[1],j[2])+' '+String(o.hour).padStart(2,'0')+':'+String(o.minute).padStart(2,'0');}catch(e){return'—';}}
   return{money:money,hours:hours,pct:pct,shortDate:shortDate,fullDate:fullDate,weekdayOf:weekdayOf,fileSize:fileSize,to24h:to24h,isoToJalali:isoToJalali,isoToJalaliTime:isoToJalaliTime};
 })();
 </script>
@@ -1171,11 +1172,7 @@ var RememberedAccounts=(function(){
   function clear(){LS.del(KEY);}
   function color(name){var h=0;for(var i=0;i<(name||'?').length;i++)h=(h*31+name.charCodeAt(i))&0x7fffffff;return COLORS[h%COLORS.length];}
   function initials(name){return(name||'?').split(' ').map(function(p){return p[0]||'';}).join('').slice(0,2).toUpperCase()||'?';}
-  function fmtTime(iso){
-    if(!iso)return'';
-    try{var d=new Date(iso),j=Jalali.toJalali(d.getFullYear(),d.getMonth()+1,d.getDate());return Jalali.fmt(j[0],j[1],j[2])+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
-    catch(e){return'';}
-  }
+  function fmtTime(iso){if(!iso)return'';try{return Fmt.isoToJalaliTime(iso);}catch(e){return'';}}
   return{load:load,remember:remember,remove:remove,getAll:getAll,clear:clear,color:color,initials:initials,fmtTime:fmtTime};
 })();
 </script>
@@ -1807,7 +1804,7 @@ var AuthUI=(function(){
 <script>
 var UI=(function(){
   function topbar(state){
-    var t=state.today,remCnt=Reminders.pendingCount(),pendCnt=Auth.pendingCount(),hr=new Date().getHours(),greeting=hr<11?'صبح بخیر':hr<16?'ظهر بخیر':hr<20?'عصر بخیر':'شب بخیر';
+    var t=state.today,remCnt=Reminders.pendingCount(),pendCnt=Auth.pendingCount(),hr=Number(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Tehran',hour:'2-digit',hourCycle:'h23'}).format(new Date())),greeting=hr<11?'صبح بخیر':hr<16?'ظهر بخیر':hr<20?'عصر بخیر':'شب بخیر';
     var el=document.createElement('div');el.className='topbar';
     el.innerHTML='<div class="topbar-in"><div class="brand"><div class="brand-logo" aria-label="Mizan wallet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H19a1 1 0 0 1 1 1v13H6a2 2 0 0 1-2-2V7.5Z"/><path d="M4 8h14.5A2.5 2.5 0 0 1 21 10.5V14h-5a2.5 2.5 0 0 1 0-5h4"/><path d="M16 11.5h.01"/></svg></div><div><div class="brand-name">میزان</div><div class="brand-date">'+greeting+' · '+Jalali.fmt(t[0],t[1],t[2])+' — '+Jalali.WDSF[Jalali.weekday(t[0],t[1],t[2])]+'</div></div></div><div class="topbar-spacer"></div>'+(Perms.isAdmin()&&pendCnt>0?'<button class="ib no-print" id="tb-pend" title="درخواست‌های تأیید نشده" style="color:var(--warn);border-color:rgba(245,158,11,.4)">'+Icons.users+'<span class="bdot" style="background:var(--warn)">'+pendCnt+'</span></button>':'')+'<button class="ib no-print" id="tb-reload" title="به‌روزرسانی صفحه" aria-label="به‌روزرسانی صفحه"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3"/></svg></button><button class="ib no-print" id="tb-rem">'+Icons.bell+(remCnt>0?'<span class="bdot">'+remCnt+'</span>':'')+'</button><button class="ib no-print" id="tb-theme">'+(Store.getTheme()==='dark'?Icons.sun:Icons.moon)+'</button><button class="ib no-print" id="tb-sets">'+Icons.settings+'</button><button class="ib no-print" id="tb-out">'+Icons.logout+'</button></div>';
     return el;
@@ -1947,7 +1944,7 @@ var UI=(function(){
         if(sq)items=items.filter(function(r){return(r.title||'').indexOf(sq)>=0||(r.notes||'').indexOf(sq)>=0;});
         if(!items.length){listEl.innerHTML='<div class="empty">'+Icons.bell+'<p>یادآوری‌ای یافت نشد</p></div>';return;}
         listEl.innerHTML='';
-        items.forEach(function(r){var isO=!r.completed&&r.dateTime&&new Date(r.dateTime)<now;var el=document.createElement('div');el.className='reminder-item'+(r.completed?' done':'')+(isO?' overdue':'');var dtStr=r.dateTime?new Date(r.dateTime).toLocaleDateString('fa-IR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';el.innerHTML='<div class="ri-chk" data-tog="'+r.id+'">'+(r.completed?Icons.check:'')+'</div><div class="ri-body"><div class="ri-title">'+escH(r.title||'')+'</div><div class="ri-meta"><span>'+dtStr+'</span>'+(r.repeat?'<span class="badge badge-warn">'+(r.repeat==='daily'?'روزانه':'هفتگی')+'</span>':'')+(r.notes?'<span>'+escH(r.notes)+'</span>':'')+'</div></div><div class="ri-acts"><button data-edit="'+r.id+'">'+Icons.edit+'</button><button data-del="'+r.id+'">'+Icons.trash+'</button></div>';listEl.appendChild(el);});
+        items.forEach(function(r){var isO=!r.completed&&r.dateTime&&new Date(r.dateTime)<now;var el=document.createElement('div');el.className='reminder-item'+(r.completed?' done':'')+(isO?' overdue':'');var dtStr=r.dateTime?new Date(r.dateTime).toLocaleDateString('fa-IR',{timeZone:'Asia/Tehran',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';el.innerHTML='<div class="ri-chk" data-tog="'+r.id+'">'+(r.completed?Icons.check:'')+'</div><div class="ri-body"><div class="ri-title">'+escH(r.title||'')+'</div><div class="ri-meta"><span>'+dtStr+'</span>'+(r.repeat?'<span class="badge badge-warn">'+(r.repeat==='daily'?'روزانه':'هفتگی')+'</span>':'')+(r.notes?'<span>'+escH(r.notes)+'</span>':'')+'</div></div><div class="ri-acts"><button data-edit="'+r.id+'">'+Icons.edit+'</button><button data-del="'+r.id+'">'+Icons.trash+'</button></div>';listEl.appendChild(el);});
         listEl.querySelectorAll('[data-tog]').forEach(function(b){b.addEventListener('click',function(){Reminders.toggle(b.dataset.tog);renderList(document.getElementById('rem-sq')?document.getElementById('rem-sq').value:'');App.updateBadge();});});
         listEl.querySelectorAll('[data-edit]').forEach(function(b){b.addEventListener('click',function(){App.openReminderForm(b.dataset.edit);});});
         listEl.querySelectorAll('[data-del]').forEach(function(b){b.addEventListener('click',function(){Reminders.remove(b.dataset.del);renderList(document.getElementById('rem-sq')?document.getElementById('rem-sq').value:'');App.updateBadge();Toast.success('حذف شد');});});
@@ -2059,12 +2056,8 @@ var UI=(function(){
       });
     }catch(e){}
     var estimatePromise=(navigator.storage&&navigator.storage.estimate)?navigator.storage.estimate().catch(function(){return null;}):Promise.resolve(null);
-    estimatePromise.then(function(est){
-      if(!body.isConnected)return;
-      var usage=est&&typeof est.usage==='number'?est.usage:null;
-      var quota=est&&typeof est.quota==='number'?est.quota:null;
-      _drawStor(body,{localBytes:localBytes,usage:usage,quota:quota,groups:groups,keyCount:keys.length});
-    });
+    var cachePromise=('caches' in window)?caches.keys().then(function(names){return Promise.all(names.map(function(n){return caches.open(n).then(function(c){return c.keys();}).then(function(reqs){return{entries:reqs.length};}).catch(function(){return{entries:0};});})).then(function(rows){return{count:names.length,entries:rows.reduce(function(a,x){return a+x.entries;},0)};});}).catch(function(){return{count:null,entries:null};}):Promise.resolve({count:null,entries:null});
+    Promise.all([estimatePromise,cachePromise]).then(function(results){if(!body.isConnected)return;var est=results[0],cacheInfo=results[1];var usage=est&&typeof est.usage==='number'?est.usage:null;var quota=est&&typeof est.quota==='number'?est.quota:null;_drawStor(body,{localBytes:localBytes,usage:usage,quota:quota,groups:groups,keyCount:keys.length,cacheCount:cacheInfo.count,cacheEntries:cacheInfo.entries});});
   }
   function _drawStor(body,data){
     var local=data.localBytes||0,usage=data.usage,quota=data.quota;
@@ -2079,7 +2072,9 @@ var UI=(function(){
       '<div class="storage-stats"><div class="ss-cell"><div class="ss-lbl">داده‌های محلی میزان</div><div class="ss-val">'+Fmt.fileSize(local)+'</div></div>'+
       '<div class="ss-cell"><div class="ss-lbl">کل فضای مبدأ در مرورگر</div><div class="ss-val">'+(usage===null?'نامشخص':Fmt.fileSize(usage))+'</div></div>'+
       '<div class="ss-cell"><div class="ss-lbl">ظرفیت گزارش‌شده مرورگر</div><div class="ss-val">'+(quota===null?'نامشخص':Fmt.fileSize(quota))+'</div></div>'+
-      '<div class="ss-cell"><div class="ss-lbl">تعداد کلیدهای ذخیره‌شده</div><div class="ss-val">'+Number(data.keyCount||0).toLocaleString('fa-IR')+'</div></div></div>'+
+      '<div class="ss-cell"><div class="ss-lbl">تعداد کلیدهای ذخیره‌شده</div><div class="ss-val">'+Number(data.keyCount||0).toLocaleString('fa-IR')+'</div></div>'+
+      '<div class="ss-cell"><div class="ss-lbl">کش‌های برنامه</div><div class="ss-val">'+(data.cacheCount===null?'نامشخص':Number(data.cacheCount||0).toLocaleString('fa-IR'))+'</div></div>'+
+      '<div class="ss-cell"><div class="ss-lbl">منابع ذخیره‌شده در کش</div><div class="ss-val">'+(data.cacheEntries===null?'نامشخص':Number(data.cacheEntries||0).toLocaleString('fa-IR'))+'</div></div></div>'+
       (pct===null?'':'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--txs);margin:7px 0"><span>سهم مصرف از ظرفیت مبدأ</span><b>'+pct.toFixed(1)+'٪</b></div><div class="storage-bar"><div class="sb-fill '+cls+'" style="width:'+pct.toFixed(1)+'%"></div></div>')+
       '<div style="font-weight:700;font-size:12px;margin:15px 0 5px">جزئیات داده‌های محلی میزان</div>'+
       (groupRows||'<div style="font-size:12px;color:var(--txs)">هنوز داده‌ای ذخیره نشده است.</div>')+
@@ -2092,7 +2087,7 @@ var UI=(function(){
       if(!confirm('فقط نسخه‌های قدیمی کش میزان پاک شوند؟ اطلاعات مالی، سوابق، تنظیمات و حساب کاربری حذف نمی‌شوند.'))return;
       clean.disabled=true;
       caches.keys().then(function(names){
-        var old=names.filter(function(n){return /^mizan-shell-v\\d+$/.test(n)&&n!=='mizan-shell-v23';});
+        var old=names.filter(function(n){return /^mizan-shell-v\\d+$/.test(n)&&n!=='mizan-shell-v24';});
         return Promise.all(old.map(function(n){return caches.delete(n);})).then(function(done){
           Toast.success(done.filter(Boolean).length.toLocaleString('fa-IR')+' کش قدیمی پاک شد');
           renderStorMon();
@@ -2304,7 +2299,7 @@ var App=(function(){
   function openMonth(y,mi){_state.year=y;_state.mi=mi;_state.page='month-detail';refresh();}
   function _startClock(){
     if(_clock)clearInterval(_clock);
-    function tick(){var n=new Date(),t=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');var c1=document.getElementById('today-clock'),c2=document.getElementById('cal-clock');if(c1)c1.textContent=t;if(c2)c2.textContent=t;}
+    function tick(){var n=new Date(),t=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Tehran',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(n);var c1=document.getElementById('today-clock'),c2=document.getElementById('cal-clock');if(c1)c1.textContent=t;if(c2)c2.textContent=t;}
     tick();_clock=setInterval(tick,1000);
   }
   function openDayDetail(dateStr){
@@ -2446,6 +2441,6 @@ document.addEventListener('DOMContentLoaded',function(){
   App.init();
 },false);
 </script>
-<script src="./mizan-enhancements.js?v=10"></script>
+<script src="./mizan-enhancements.js?v=11"></script>
 </body>
 </html>
