@@ -175,9 +175,9 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
     var metadata=owner&&owner.user_metadata?owner.user_metadata:{};
     visibleUsername=String(metadata.username||metadata.user_name||(owner.email?owner.email.split('@')[0]:ownerUsername)).replace(/[^a-zA-Z0-9_.-]/g,'').slice(0,32)||ownerUsername;
     displayName=String(metadata.full_name||metadata.name||'').trim();
-    var localKeys=safeKeys();
-    var merged={};Object.keys(remoteKeys).forEach(function(k){merged[k]=remoteKeys[k];});
-    Object.keys(localKeys).forEach(function(k){if(!Object.prototype.hasOwnProperty.call(merged,k))merged[k]=localKeys[k];});
+    var localKeys=safeKeys(),merged={};
+    if(offlineMode&&Object.keys(localKeys).length){Object.keys(localKeys).forEach(function(k){merged[k]=localKeys[k];});}
+    else{Object.keys(remoteKeys).forEach(function(k){merged[k]=remoteKeys[k];});Object.keys(localKeys).forEach(function(k){if(!Object.prototype.hasOwnProperty.call(merged,k))merged[k]=localKeys[k];});}
     applyKeys(merged);seedLegacySession();
     var payload={schema:1,ownerUsername:ownerUsername,keys:merged};
     if(!offlineMode){await saveCloud(payload);lastSyncedPayload=payload;lastSignature=JSON.stringify(payload);}else{lastSyncedPayload=remote;lastSignature=JSON.stringify(remote);}
@@ -236,6 +236,7 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
             seedLegacySession();
             lastSyncedPayload=normalized;
             lastSignature=JSON.stringify(normalized);
+            try{localStorage.setItem('mizan-cloud-snapshot-'+owner.id,JSON.stringify(normalized));}catch(snapshotError){console.warn('Mizan offline snapshot update failed',snapshotError);}
           }
         }
       }catch(e){console.warn('Cloud sync failed',e);say('اتصال ابری موقتاً برقرار نیست؛ اطلاعات روی همین دستگاه محفوظ است.');}
