@@ -109,9 +109,29 @@ try{
     const routeText=await appFrame.locator('#page-content').innerText();
     if(routeText.includes('خطا در بارگذاری صفحه'))throw new Error('App route threw a render error: '+route);
   }
+  await appFrame.locator('#app').evaluate(()=>window.App.navigate('achievements'));
+  await appFrame.locator('#add-goal').click();
+  await appFrame.locator('#gf-t').fill('تست آفلاین هدف');
+  await appFrame.locator('#gf-target').fill('100000');
+  await appFrame.locator('#gf-current').fill('25000');
+  await appFrame.locator('#gf-sv').click();
+  await appFrame.locator('#goal-list').getByText('تست آفلاین هدف').waitFor({state:'visible',timeout:10000});
+  await appFrame.locator('#app').evaluate(()=>window.App.navigate('reminders'));
+  await appFrame.locator('#add-rem').click();
+  await appFrame.locator('#rf-t').fill('تست ساعت تهران');
+  await appFrame.locator('#rf-dt').fill('2026-11-26T09:30');
+  await appFrame.locator('#rf-sv').click();
+  await appFrame.locator('.reminder-item').waitFor({state:'visible',timeout:10000});
+  const savedReminder=await appFrame.locator('#app').evaluate(()=>window.Reminders.load().find(x=>x.title==='تست ساعت تهران')?.dateTime||null);
+  if(savedReminder!=='2026-11-26T06:00:00.000Z')throw new Error('Reminder time was not saved as Tehran time: '+savedReminder);
+  await appFrame.locator('#app').evaluate(()=>window.App.navigate('settings'));
+  await appFrame.locator('#stor-body').waitFor({state:'visible'});
+  await appFrame.locator('#stor-body').getByText('داده‌های محلی میزان').waitFor({state:'visible',timeout:10000});
+  await appFrame.locator('#stor-ref').click();
+  await appFrame.locator('#stor-body').getByText('کش‌های برنامه').waitFor({state:'visible',timeout:10000});
 
   if(pageErrors.length) throw new Error('Browser runtime errors: '+pageErrors.join(' | '));
-  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,authenticatedOfflineDashboard:true,pageSections,routeCount:routes.length,pageErrors},null,2));
+  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,authenticatedOfflineDashboard:true,pageSections,routeCount:routes.length,goalCreate:true,reminderTehranTime:true,storageMonitor:true,pageErrors},null,2));
 } finally {
   if(browser) await browser.close();
   await new Promise(resolve=>server.close(resolve));
