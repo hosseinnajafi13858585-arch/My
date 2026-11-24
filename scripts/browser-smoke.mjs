@@ -78,20 +78,18 @@ try{
     return {names,criticalLibraryCached:found};
   });
   if(!cacheState.criticalLibraryCached) throw new Error('Supabase client was not cached for offline startup');
+  await page.evaluate(()=>{
+    const uid='00000000-0000-4000-8000-000000000001';
+    const now=Math.floor(Date.now()/1000);
+    const session={access_token:'eyJhbGciOiJub25lIn0.eyJleHAiOjQxMDAwMDAwMDB9.',token_type:'bearer',expires_in:86400,expires_at:now+86400,refresh_token:'offline-smoke-test-token',user:{id:uid,aud:'authenticated',role:'authenticated',email:'offline-smoke@example.invalid',app_metadata:{provider:'email',providers:['email']},user_metadata:{username:'owner',full_name:'آزمایش'},created_at:new Date().toISOString()}};
+    localStorage.setItem('sb-jrhihuaswonlcdkhoabf-auth-token',JSON.stringify(session));
+    localStorage.setItem('mizan-cloud-snapshot-'+uid,JSON.stringify({schema:1,ownerUsername:'owner',keys:{}}));
+  });
   await context.setOffline(true);
   await page.reload({waitUntil:'domcontentloaded'});
-  await page.locator('#email').waitFor({state:'visible',timeout:15000});
+  await page.locator('#workspace').waitFor({state:'visible',timeout:20000});
   const offlineGate=await page.locator('#gate').isVisible();
-  if(!offlineGate) throw new Error('Offline login shell did not render');
-  await page.evaluate(()=>{
-    localStorage.setItem('workapp-users',JSON.stringify([{username:'owner',password:'test-only',name:'آزمایش',role:'superadmin',status:'active',approval:'approved'}]));
-    localStorage.setItem('workapp-super','owner');
-    sessionStorage.setItem('workapp-auth',JSON.stringify({username:'owner',name:'آزمایش',role:'superadmin',isSuper:true}));
-    const gate=document.getElementById('gate'),workspace=document.getElementById('workspace'),frame=document.getElementById('appframe');
-    if(gate)gate.classList.add('hidden');
-    if(workspace)workspace.classList.remove('hidden');
-    if(frame){frame.classList.remove('hidden');frame.src='./index-1.html';}
-  });
+  if(offlineGate) throw new Error('Offline authenticated session unexpectedly returned to login gate');
   const appFrame=page.frameLocator('#appframe');
   await appFrame.locator('#page-content').waitFor({state:'attached',timeout:20000});
   await appFrame.locator('#app').waitFor({state:'visible',timeout:20000});
@@ -101,7 +99,7 @@ try{
   if(pageSections<1) throw new Error('Offline dashboard content did not render');
 
   if(pageErrors.length) throw new Error('Browser runtime errors: '+pageErrors.join(' | '));
-  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineShell:true,authenticatedOfflineDashboard:true,pageSections,pageErrors},null,2));
+  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineAuthenticatedSession:true,authenticatedOfflineDashboard:true,pageSections,pageErrors},null,2));
 } finally {
   if(browser) await browser.close();
   await new Promise(resolve=>server.close(resolve));
