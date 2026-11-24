@@ -38,6 +38,7 @@ for (const item of [...shell[1].matchAll(/'([^']+)'/g)].map(m=>m[1])) {
   assert.ok(fs.existsSync(new URL('../'+path,import.meta.url)), 'Service worker precache file missing: '+path);
 }
 assert.match(sw,/supabase\.co/,'Service worker must never cache Supabase API/auth responses');
+assert.match(sw,/CRITICAL_CDN_FILES=.*supabase-js/,'Critical Supabase client must be precached for offline startup');
 assert.match(read('index.html'),/mizan-cloud-snapshot-/,'Offline snapshot key missing');
 assert.match(read('index.html'),/auth\.getSession\(\)/,'Offline entry must require an existing Supabase session');
 assert.match(read('index.html'),/beforeinstallprompt/,'Android install prompt handler missing');
