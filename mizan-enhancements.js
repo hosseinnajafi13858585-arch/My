@@ -226,7 +226,7 @@
       head('بازار و قیمت‌ها', 'نرخ‌های بازار آزاد ایران · واحد نمایش تومان', '<span class="mzn-source-badge">منبع رایگان</span>') +
       '<div class="mzn-market-status" id="mzn-market-status">در حال دریافت آخرین نرخ‌های منتشرشده...</div>' +
       '<div class="mzn-market-grid" id="mzn-market-grid"><div class="mzn-panel">در حال بارگذاری...</div></div>' +
-      '<div class="mzn-panel mzn-market-note"><b>درباره تازگی قیمت‌ها</b><p>این منبع رایگان معمولاً هر ۱۰ دقیقه داده‌ها را بازسازی می‌کند؛ بنابراین «لحظه‌به‌لحظه واقعی» نیست. میزان زمان آخرین به‌روزرسانی منبع را کنار قیمت نشان می‌دهد و در صورت کهنه‌بودن داده هشدار می‌دهد.</p><p>منبع: <a href="https://nerkhara.com/" target="_blank" rel="noopener">NerkhAra</a> · نرخ‌ها اطلاعاتی هستند و توصیه خرید یا فروش نیستند.</p></div>' +
+      '<div class="mzn-panel mzn-market-note"><b>درباره تازگی قیمت‌ها</b><p>این منبع رایگان معمولاً هر ۱۰ دقیقه داده‌ها را بازسازی می‌کند؛ بنابراین «لحظه‌به‌لحظه واقعی» نیست. میزان زمان آخرین به‌روزرسانی منبع را کنار قیمت نشان می‌دهد و در صورت کهنه‌بودن داده هشدار می‌دهد.</p><p>منبع: <a href="https://nerkhara.com/en/api/" target="_blank" rel="noopener">NerkhAra</a> · نرخ‌ها اطلاعاتی هستند و توصیه خرید یا فروش نیستند.</p></div>' +
       button('mzn-market-refresh', 'به‌روزرسانی', Icons.refresh, 'btn btn-ghost')
     );
     async function refresh() {
@@ -421,8 +421,8 @@
     };
     root.querySelector('#mzn-rem-notify').onclick = async function () {
       if (!('Notification' in window)) { notify('این مرورگر اعلان وب را پشتیبانی نمی‌کند.'); return; }
-      var p = await Notification.requestPermission();
-      notify(p === 'granted' ? 'اجازه اعلان داده شد؛ اعلان‌ها هنگام بازبودن سایت بررسی می‌شوند.' : 'اجازه اعلان داده نشد.');
+      try { var p = await Notification.requestPermission(); notify(p === 'granted' ? 'اجازه اعلان داده شد؛ اعلان‌ها هنگام بازبودن سایت بررسی می‌شوند.' : 'اجازه اعلان داده نشد.'); }
+      catch (e) { notify('مرورگر اجازه اعلان نداد: ' + (e.message || '')); }
     };
     setTimeout(load, 0);
     async function checkDueNotifications() {
