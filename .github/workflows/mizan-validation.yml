@@ -41,3 +41,5 @@ jobs:
           NODE
       - name: Validate PWA manifest
         run: node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8')); console.log('manifest.webmanifest passed')"
+      - name: Run application and PWA regression checks
+        run: node scripts/validate.mjs
