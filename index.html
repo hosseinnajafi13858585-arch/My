@@ -133,7 +133,7 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
   'use strict';
   var SUPABASE_URL='https://jrhihuaswonlcdkhoabf.supabase.co';
   var SUPABASE_KEY='sb_publishable_48l_e94YWetezy99KDGqWQ_uGj7sf9i';
-  var client=null,owner=null,ownerUsername='owner',syncTimer=null,lastSignature='',lastSyncedPayload=null,busy=false,mode='login';
+  var client=null,owner=null,ownerUsername='owner',visibleUsername='owner',displayName='owner',syncTimer=null,lastSignature='',lastSyncedPayload=null,busy=false,mode='login';
   var gate=document.getElementById('gate'),workspace=document.getElementById('workspace'),form=document.getElementById('auth-form'),msg=document.getElementById('msg'),signupBtn=document.getElementById('signup'),forgotBtn=document.getElementById('forgot'),submitBtn=document.getElementById('submit'),resendBtn=document.getElementById('resend-confirm');
   function supa(){if(!client){if(!window.supabase)throw new Error('کتابخانه اتصال بارگذاری نشد؛ اینترنت را بررسی کن.');client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,experimental:{passkey:true}}});}return client;}
   function say(s,good){msg.textContent=s||'';msg.style.color=good?'#86efac':'#fbbf24';}
@@ -155,7 +155,8 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
     var previous=[];try{previous=JSON.parse(localStorage.getItem('workapp-users')||'[]');}catch(e){}
     var old=Array.isArray(previous)?previous.find(function(x){return x&&x.username===ownerUsername;}):null;
     var metadata=owner&&owner.user_metadata?owner.user_metadata:{};
-    var displayName=String(metadata.full_name||metadata.name||(old&&old.name)||ownerUsername).trim()||ownerUsername;
+    var oldName=old&&old.name&&String(old.name).toLowerCase()!=='owner'?old.name:'';
+    displayName=String(metadata.full_name||metadata.name||oldName||visibleUsername).trim()||visibleUsername;
     var account={username:ownerUsername,password:internalPassword,name:displayName,role:'superadmin',status:'active',approval:'approved',permissions:[],isSuper:true,createdAt:new Date().toISOString()};
     localStorage.setItem('workapp-users',JSON.stringify([account]));localStorage.setItem('workapp-super',ownerUsername);
     sessionStorage.setItem('workapp-auth',JSON.stringify({username:ownerUsername,name:displayName,role:'superadmin',isSuper:true}));
@@ -170,16 +171,19 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
     var remote=r.data&&r.data.payload&&typeof r.data.payload==='object'?r.data.payload:{};
     var remoteKeys=remote.keys&&typeof remote.keys==='object'?remote.keys:{};
     ownerUsername=String(remote.ownerUsername||legacyOwnerName()||'owner').replace(/[^a-zA-Z0-9_]/g,'').slice(0,32)||'owner';
+    var metadata=owner&&owner.user_metadata?owner.user_metadata:{};
+    visibleUsername=String(metadata.username||metadata.user_name||(owner.email?owner.email.split('@')[0]:ownerUsername)).replace(/[^a-zA-Z0-9_.-]/g,'').slice(0,32)||ownerUsername;
+    displayName=String(metadata.full_name||metadata.name||'').trim();
     var localKeys=safeKeys();
     var merged={};Object.keys(remoteKeys).forEach(function(k){merged[k]=remoteKeys[k];});
     Object.keys(localKeys).forEach(function(k){if(!Object.prototype.hasOwnProperty.call(merged,k))merged[k]=localKeys[k];});
     applyKeys(merged);seedLegacySession();
     var payload={schema:1,ownerUsername:ownerUsername,keys:merged};
     await saveCloud(payload);lastSyncedPayload=payload;lastSignature=JSON.stringify(payload);
-    document.getElementById('account-label').textContent='@'+ownerUsername+' · '+String((owner.user_metadata&&(owner.user_metadata.full_name||owner.user_metadata.name))||ownerUsername)+' · همگام‌سازی ابری فعال';installPasskeyRegisterButton();
+    document.getElementById('account-label').textContent='@'+visibleUsername+' · '+(displayName||visibleUsername)+' · همگام‌سازی ابری فعال';installPasskeyRegisterButton();
     gate.classList.add('hidden');workspace.classList.remove('hidden');
     var frame=document.getElementById('appframe');
-    frame.onload=function(){lockEmbeddedApp(frame);try{var profile=frame.contentWindow.Auth&&frame.contentWindow.Auth.getUser?frame.contentWindow.Auth.getUser():null;if(profile){var label=document.getElementById('account-label');if(label)label.textContent='@'+(profile.username||ownerUsername)+' · '+(profile.name||profile.username||ownerUsername)+' · همگام‌سازی ابری فعال';}}catch(e){}};
+    frame.onload=function(){lockEmbeddedApp(frame);try{frame.contentWindow.MizanProfile={username:visibleUsername,name:displayName||visibleUsername};}catch(e){}};
     frame.src='index-1.html';
     startSync();
   }
@@ -244,6 +248,8 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
   forgotBtn.addEventListener('click',function(){setMode('forgot');});
   document.getElementById('logout').addEventListener('click',logout);
   window.addEventListener('message',function(e){if(e.origin===location.origin&&e.data&&e.data.type==='private-workapp-logout')logout();});
+  window.addEventListener('message',async function(e){if(e.origin!==location.origin||!e.data||e.data.type!=='mizan-profile-update')return;var next=String(e.data.name||visibleUsername).trim();if(!next)return;displayName=next;try{var updated=await supa().auth.updateUser({data:{full_name:displayName,username:visibleUsername}});if(updated.error)console.warn('Mizan profile sync failed',updated.error);else if(updated.data&&updated.data.user)owner=updated.data.user;}catch(err){console.warn('Mizan profile sync failed',err);}var label=document.getElementById('account-label');if(label)label.textContent='@'+visibleUsername+' · '+displayName+' · همگام‌سازی ابری فعال';});
+
   async function boot(){var recoveryFlow=location.hash.indexOf('type=recovery')!==-1;setMode(recoveryFlow?'update':'login');try{if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js').catch(function(e){console.warn('PWA registration failed',e);});var s=await supa().auth.getSession();if(recoveryFlow){if(!s.data.session)throw new Error('لینک بازیابی معتبر نیست یا منقضی شده است. دوباره درخواست بازیابی بده.');setMode('update');return;}if(s.data.session){await prepareWorkspace();return;}if(await ownerClaimed()){signupBtn.classList.add('hidden');}}catch(e){say(e.message||'اتصال به سرویس امن برقرار نشد.');}}
   supa().auth.onAuthStateChange(function(event,session){if(event==='PASSWORD_RECOVERY'){setMode('update');say('لینک بازیابی تأیید شد؛ رمز جدید را وارد کن.',true);}if(event==='SIGNED_OUT'&&owner){owner=null;if(syncTimer)clearInterval(syncTimer);workspace.classList.add('hidden');gate.classList.remove('hidden');}});
   boot();
