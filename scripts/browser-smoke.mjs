@@ -88,6 +88,12 @@ try{
     const now=Math.floor(Date.now()/1000);
     const session={access_token:'eyJhbGciOiJub25lIn0.eyJleHAiOjQxMDAwMDAwMDB9.',token_type:'bearer',expires_in:86400,expires_at:now+86400,refresh_token:'offline-smoke-test-token',user:{id:uid,aud:'authenticated',role:'authenticated',email:'offline-smoke@example.invalid',app_metadata:{provider:'email',providers:['email']},user_metadata:{username:'owner',full_name:'آزمایش'},created_at:new Date().toISOString()}};
     localStorage.setItem('sb-jrhihuaswonlcdkhoabf-auth-token',JSON.stringify(session));
+  });
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#email').waitFor({state:'visible',timeout:15000});
+  if(!(await page.locator('#gate').isVisible()))throw new Error('Offline session without a local snapshot must not unlock the app');
+  await page.evaluate(()=>{
+    const uid='00000000-0000-4000-8000-000000000001';
     localStorage.setItem('mizan-cloud-snapshot-'+uid,JSON.stringify({schema:1,ownerUsername:'owner',keys:{}}));
   });
   await page.reload({waitUntil:'domcontentloaded'});
@@ -131,7 +137,7 @@ try{
   await appFrame.locator('#stor-body').getByText('کش‌های برنامه').waitFor({state:'visible',timeout:10000});
 
   if(pageErrors.length) throw new Error('Browser runtime errors: '+pageErrors.join(' | '));
-  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,authenticatedOfflineDashboard:true,pageSections,routeCount:routes.length,goalCreate:true,reminderTehranTime:true,storageMonitor:true,pageErrors},null,2));
+  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,missingSnapshotBlocked:true,authenticatedOfflineDashboard:true,pageSections,routeCount:routes.length,goalCreate:true,reminderTehranTime:true,storageMonitor:true,pageErrors},null,2));
 } finally {
   if(browser) await browser.close();
   await new Promise(resolve=>server.close(resolve));
