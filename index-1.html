@@ -2120,6 +2120,7 @@ var App=(function(){
       if(_state.mi==null)_state.mi=_state.today[1]-1;
       var appEl=document.getElementById('app');if(!appEl)return;
       appEl.innerHTML='';
+      document.querySelectorAll('.global-nav').forEach(function(n){n.remove();});
       document.documentElement.setAttribute('data-theme',Store.getTheme()||'light');
       appEl.appendChild(UI.topbar(_state));
       var main=document.createElement('div');main.className='main';main.id='main';
@@ -2130,13 +2131,13 @@ var App=(function(){
         main.appendChild(banner);
         setTimeout(function(){var ex=document.getElementById('ban-ex');if(ex)ex.addEventListener('click',function(){AdminSession.exit();render();});var sw=document.getElementById('ban-sw');if(sw)sw.addEventListener('click',function(){AdminSession.switchMode(AdminSession.getMode()==='view'?'manage':'view');render();});},0);
       }
-      main.appendChild(UI.navTabs(_state.page));
       var content=document.createElement('div');content.id='page-content';
       var pg=_renderPage();if(pg)content.appendChild(pg);
       main.appendChild(content);
       appEl.appendChild(main);
       var footer=document.createElement('div');footer.className='footer no-print';footer.textContent='مدیریت کار — نسخه '+Store.VER;
       appEl.appendChild(footer);
+      var globalNav=UI.navTabs(_state.page);globalNav.classList.add('global-nav');document.body.appendChild(globalNav);
       _bindTopbar();_startClock();
       try{Achievements.checkAll();}catch(e){}
     }catch(e){console.error('App.render error',e);}
