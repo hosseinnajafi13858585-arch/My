@@ -590,6 +590,51 @@
     Goals.__mizanSyncInstalled = true;
   }
 
+
+  function installAssistantFab() {
+    if (document.getElementById('mzn-assistant-fab') || !document.body) return;
+    var tips = [
+      'می‌توانم حقوق خالص این ماهت را حساب کنم.',
+      'می‌توانم خرج‌ها و فروش‌هایت را خلاصه کنم.',
+      'می‌توانم پیشرفت هدف‌های مالی‌ات را بررسی کنم.',
+      'می‌توانم وضعیت این هفته‌ات را جمع‌بندی کنم.',
+      'می‌توانم برای پایان ماه یک برآورد بسازم.',
+      'می‌توانم یادآورها و سررسیدهایت را مرور کنم.'
+    ];
+    var tipIndex = Math.floor(Math.random() * tips.length);
+    var tip = document.createElement('button');
+    tip.type = 'button'; tip.id = 'mzn-assistant-tip'; tip.className = 'mzn-assistant-tip';
+    tip.setAttribute('aria-label', 'باز کردن دستیار میزان'); tip.textContent = tips[tipIndex];
+    var fab = document.createElement('button');
+    fab.type = 'button'; fab.id = 'mzn-assistant-fab'; fab.className = 'mzn-assistant-fab';
+    fab.setAttribute('aria-label', 'باز کردن دستیار میزان'); fab.setAttribute('title', 'دستیار میزان');
+    fab.innerHTML = (Icons.sparkles || Icons.star || '✦') + '<span class="mzn-fab-pulse"></span>';
+    function openAssistant() { if (window.App && App.navigate) App.navigate('assistant'); }
+    tip.addEventListener('click', openAssistant);
+    fab.addEventListener('click', openAssistant);
+    document.body.appendChild(tip); document.body.appendChild(fab);
+    function setTip() { if (!tip.isConnected) return; tip.classList.remove('mzn-tip-in'); void tip.offsetWidth; tip.textContent = tips[tipIndex++ % tips.length]; tip.classList.add('mzn-tip-in'); }
+    setTip(); window.setInterval(setTip, 7600);
+    window.MizanAssistantFab = {
+      update: function (page) {
+        var opened = page === 'assistant';
+        fab.classList.toggle('is-open', opened);
+        fab.setAttribute('aria-label', opened ? 'بازگشت به خانه' : 'باز کردن دستیار میزان');
+        fab.innerHTML = opened ? (Icons.x || '×') : (Icons.sparkles || Icons.star || '✦') + '<span class="mzn-fab-pulse"></span>';
+        tip.hidden = opened;
+        if (opened) fab.onclick = function () { App.navigate('dashboard'); };
+        else fab.onclick = openAssistant;
+      }
+    };
+  }
+  function installMotionStyles() {
+    var doc = window.parent && window.parent.document ? window.parent.document : document;
+    if (doc.getElementById('mizan-motion-parent-style')) return;
+    var style = doc.createElement('style'); style.id = 'mizan-motion-parent-style';
+    style.textContent = '.global-nav.nav-tabs{isolation:isolate}.global-nav .nav-tab{position:relative!important;overflow:hidden!important;transition:transform .24s cubic-bezier(.2,.75,.25,1),color .24s ease,background .24s ease,box-shadow .24s ease!important}.global-nav .nav-tab:active{transform:scale(.93)!important}.global-nav .nav-tab.active{transform:translateY(-2px)!important;box-shadow:0 8px 22px rgba(35,107,77,.25),inset 0 1px 0 rgba(255,255,255,.28)!important}.global-nav .nav-tab.active:after{content:"";position:absolute;bottom:3px;left:50%;width:15px;height:2px;border-radius:3px;background:rgba(255,255,255,.9);transform:translateX(-50%);animation:mznNavLine .3s ease both}.global-nav .nav-tab svg{transition:transform .28s cubic-bezier(.2,.8,.2,1)!important}.global-nav .nav-tab.active svg{transform:translateY(-1px) scale(1.08)}@keyframes mznNavLine{from{width:0;opacity:0}to{width:15px;opacity:1}}.mzn-assistant-fab{position:fixed;z-index:2147482500;right:17px;bottom:calc(102px + env(safe-area-inset-bottom));width:58px;height:58px;border:1px solid rgba(255,255,255,.7);border-radius:21px;display:grid;place-items:center;color:#fff;background:linear-gradient(145deg,#236b4d,#8fb394);box-shadow:0 12px 30px rgba(35,107,77,.34),inset 0 1px 0 rgba(255,255,255,.35);animation:mznFabFloat 2.7s ease-in-out infinite;transition:transform .25s ease,box-shadow .25s ease}.mzn-assistant-fab>svg{width:26px;height:26px}.mzn-assistant-fab:active{transform:scale(.91)}.mzn-assistant-fab.is-open{animation:none;background:linear-gradient(145deg,#5c7961,#236b4d)}.mzn-fab-pulse{position:absolute;inset:-5px;border:1px solid rgba(95,157,111,.4);border-radius:24px;animation:mznFabPulse 2.2s ease-out infinite;pointer-events:none}.mzn-assistant-tip{position:fixed;z-index:2147482500;right:15px;bottom:calc(170px + env(safe-area-inset-bottom));max-width:min(245px,calc(100vw - 40px));padding:10px 13px;border:1px solid rgba(35,107,77,.16);border-radius:15px 15px 5px 15px;background:rgba(250,249,240,.94);color:#28583f;font:600 11px/1.8 system-ui,sans-serif;text-align:right;box-shadow:0 9px 24px rgba(30,65,42,.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);cursor:pointer;animation:mznTipFloat 3.2s ease-in-out infinite}.mzn-assistant-tip:after{content:"";position:absolute;right:22px;bottom:-6px;width:11px;height:11px;background:inherit;border-right:1px solid rgba(35,107,77,.16);border-bottom:1px solid rgba(35,107,77,.16);transform:rotate(45deg)}.mzn-assistant-tip[hidden]{display:none!important}.mzn-tip-in{animation:mznTipIn .35s cubic-bezier(.2,.8,.2,1) both}@keyframes mznFabFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-2deg)}}@keyframes mznFabPulse{0%{transform:scale(.9);opacity:.7}100%{transform:scale(1.32);opacity:0}}@keyframes mznTipFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}@keyframes mznTipIn{from{opacity:0;transform:translateY(7px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}@media(max-width:420px){.mzn-assistant-fab{width:54px;height:54px;right:13px;bottom:calc(100px + env(safe-area-inset-bottom))}.mzn-assistant-tip{right:12px;bottom:calc(164px + env(safe-area-inset-bottom));font-size:10px}}@media(prefers-reduced-motion:reduce){.mzn-assistant-fab,.mzn-assistant-tip,.mzn-fab-pulse{animation:none!important}.global-nav .nav-tab{transition:none!important}}';
+    doc.head.appendChild(style);
+  }
+
   function installNavigation() {
     if (!window.UI || !window.App || UI.__mizanNavigationInstalled) return;
     var old = UI.navTabs;
@@ -618,7 +663,10 @@
     };
     var originalNavigate = App.navigate;
     App.navigate = function (page) {
+      var pageHost = document.getElementById('page-content');
+      if (pageHost) { pageHost.classList.remove('mzn-page-switch'); void pageHost.offsetWidth; pageHost.classList.add('mzn-page-switch'); }
       var result = originalNavigate.call(App, page);
+      if (window.MizanAssistantFab) window.MizanAssistantFab.update(page);
       try {
         var doc = window.parent.document;
         var core = ['dashboard', 'finance', 'market', 'documents'];
@@ -644,6 +692,8 @@
     syncGoals: syncAllGoals
   };
   installGoalSync();
+  installMotionStyles();
+  installAssistantFab();
   installNavigation();
   document.addEventListener('DOMContentLoaded', function () { setTimeout(syncAllGoals, 1800); });
   document.addEventListener('click', function (e) {
