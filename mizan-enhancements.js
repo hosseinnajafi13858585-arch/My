@@ -555,6 +555,40 @@
     return root;
   }
 
+  async function syncGoalToDatabase(goal) {
+    try {
+      var s = await session();
+      if (!s.user || !goal || !goal.id) return;
+      var target = num(goal.targetAmount);
+      if (target <= 0) {
+        await s.client.from('mizan_goals').delete().eq('user_id', s.user.id).eq('legacy_id', String(goal.id));
+        return;
+      }
+      var status = goal.status === 'completed' ? 'completed' : goal.status === 'paused' ? 'paused' : 'active';
+      var due = goal.endDate ? jToISO(goal.endDate) : null;
+      var result = await s.client.from('mizan_goals').upsert({
+        user_id: s.user.id, legacy_id: String(goal.id), title: goal.title || 'هدف مالی',
+        description: goal.description || '', target_amount: target, current_amount: num(goal.currentAmount),
+        due_date: due || null, status: status, updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id,legacy_id' });
+      if (result.error) console.warn('Mizan goal sync failed', result.error);
+    } catch (e) { console.warn('Mizan goal sync failed', e); }
+  }
+  async function syncAllGoals() {
+    try {
+      var goals = Goals.load();
+      for (var i = 0; i < goals.length; i++) if (num(goals[i].targetAmount) > 0) await syncGoalToDatabase(goals[i]);
+    } catch (e) { console.warn('Mizan goals initial sync failed', e); }
+  }
+  function installGoalSync() {
+    if (!window.Goals || Goals.__mizanSyncInstalled) return;
+    var add = Goals.add, update = Goals.update, remove = Goals.remove;
+    Goals.add = function (goal, user) { var result = add.call(Goals, goal, user); syncGoalToDatabase(result); return result; };
+    Goals.update = function (id, patch, user) { var result = update.call(Goals, id, patch, user); if (result) syncGoalToDatabase(result); return result; };
+    Goals.remove = function (id, user) { var old = Goals.load(user).find(function (g) { return g.id === id; }); var result = remove.call(Goals, id, user); if (old) syncGoalToDatabase(Object.assign({}, old, { targetAmount: 0 })); return result; };
+    Goals.__mizanSyncInstalled = true;
+  }
+
   function installNavigation() {
     if (!window.UI || !window.App || UI.__mizanNavigationInstalled) return;
     var old = UI.navTabs;
@@ -605,9 +639,12 @@
     calendar: renderCalendar,
     assistant: renderAssistant,
     more: renderMore,
-    assistantReply: assistantReply
+    assistantReply: assistantReply,
+    syncGoals: syncAllGoals
   };
+  installGoalSync();
   installNavigation();
+  document.addEventListener('DOMContentLoaded', function () { setTimeout(syncAllGoals, 1800); });
   document.addEventListener('click', function (e) {
     var nav = e.target && e.target.closest ? e.target.closest('.global-nav') : null;
     if (nav) nav.dataset.theme = Store.getTheme() || 'light';
