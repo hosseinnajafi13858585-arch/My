@@ -187,7 +187,16 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
     else{Object.keys(remoteKeys).forEach(function(k){merged[k]=remoteKeys[k];});Object.keys(localKeys).forEach(function(k){if(!Object.prototype.hasOwnProperty.call(merged,k))merged[k]=localKeys[k];});}
     applyKeys(merged);seedLegacySession();
     var payload={schema:1,ownerUsername:ownerUsername,keys:merged};
-    if(!offlineMode){await saveCloud(payload);lastSyncedPayload=payload;lastSignature=JSON.stringify(payload);}else{lastSyncedPayload=remote;lastSignature=JSON.stringify(remote);}
+    if(!offlineMode){
+      try{await saveCloud(payload);lastSyncedPayload=payload;lastSignature=JSON.stringify(payload);}
+      catch(syncError){
+        var temporaryNetworkFailure=!navigator.onLine||/failed to fetch|network|load failed|connection|timeout/i.test(String(syncError&&syncError.message||syncError));
+        if(!temporaryNetworkFailure)throw syncError;
+        offlineMode=true;console.warn('Mizan could not complete initial cloud sync; keeping a local snapshot',syncError);
+        try{localStorage.setItem('mizan-cloud-snapshot-'+owner.id,JSON.stringify(payload));}catch(snapshotWriteError){console.warn('Mizan local snapshot write failed',snapshotWriteError);}
+        lastSyncedPayload=remote;lastSignature=JSON.stringify(remote);
+      }
+    }else{lastSyncedPayload=remote;lastSignature=JSON.stringify(remote);}
     document.getElementById('account-label').textContent=offlineMode?'حساب شخصی میزان · حالت آفلاین · ذخیره روی دستگاه':'حساب شخصی میزان · همگام‌سازی ابری فعال';installPasskeyRegisterButton();
     gate.classList.add('hidden');workspace.classList.remove('hidden');
     var frame=document.getElementById('appframe');
