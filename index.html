@@ -162,13 +162,14 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
     sessionStorage.setItem('workapp-auth',JSON.stringify({username:ownerUsername,name:displayName,role:'superadmin',isSuper:true}));
   }
   function payloadSignature(p){var keys=p&&p.keys&&typeof p.keys==='object'?p.keys:{},sorted={};Object.keys(keys).sort().forEach(function(k){sorted[k]=keys[k];});return JSON.stringify({schema:1,ownerUsername:(p&&p.ownerUsername)||'owner',keys:sorted});}
-  async function saveCloud(payload){var r=await supa().from('app_data').upsert({user_id:owner.id,payload:payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(r.error)throw r.error;}
+  async function saveCloud(payload){var r=await supa().from('app_data').upsert({user_id:owner.id,payload:payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(r.error)throw r.error;try{localStorage.setItem('mizan-cloud-snapshot-'+owner.id,JSON.stringify(payload));}catch(e){console.warn('Offline snapshot could not be saved',e);}}
   function installPasskeyRegisterButton(){var top=document.querySelector('.top');if(!top||document.getElementById('register-passkey'))return;var b=document.createElement('button');b.type='button';b.id='register-passkey';b.className='passkey-btn';b.textContent='ثبت Face ID';b.addEventListener('click',async function(){if(!supa().auth.registerPasskey){say('نسخه کتابخانه ورود بیومتریک را پشتیبانی نمی‌کند.');return;}b.disabled=true;try{var r=await supa().auth.registerPasskey();if(r.error)throw r.error;say('ورود بیومتریک این دستگاه ثبت شد.',true);}catch(e){say((e.message||'ثبت Face ID ناموفق بود.')+(String(e.message||'').indexOf('passkey_disabled')>=0?' — باید Passkeys را در Supabase فعال کنی.':''));}finally{b.disabled=false;}});var logout=document.getElementById('logout');top.insertBefore(b,logout||null);}
   async function prepareWorkspace(){
     owner=(await supa().auth.getSession()).data.session.user;
     if(!await verifyOwner(owner)){await supa().auth.signOut();throw new Error('این حساب مالک این برنامه نیست و اجازه ورود ندارد.');}
-    var r=await supa().from('app_data').select('payload').eq('user_id',owner.id).maybeSingle();if(r.error)throw r.error;
-    var remote=r.data&&r.data.payload&&typeof r.data.payload==='object'?r.data.payload:{};
+    var remote={},offlineMode=!navigator.onLine;
+    if(!offlineMode){try{var r=await supa().from('app_data').select('payload').eq('user_id',owner.id).maybeSingle();if(r.error)throw r.error;remote=r.data&&r.data.payload&&typeof r.data.payload==='object'?r.data.payload:{};}catch(networkError){offlineMode=true;console.warn('Mizan is switching to offline snapshot',networkError);}}
+    if(offlineMode){try{remote=JSON.parse(localStorage.getItem('mizan-cloud-snapshot-'+owner.id)||'null')||{};}catch(snapshotError){remote={};}if(!remote||!remote.keys||typeof remote.keys!=='object')throw new Error('برای ورود آفلاین هنوز نسخه‌ای از اطلاعات روی این دستگاه ذخیره نشده است. یک‌بار با اینترنت وارد میزان شو تا نسخه آفلاین آماده شود.');}
     var remoteKeys=remote.keys&&typeof remote.keys==='object'?remote.keys:{};
     ownerUsername=String(remote.ownerUsername||legacyOwnerName()||'owner').replace(/[^a-zA-Z0-9_]/g,'').slice(0,32)||'owner';
     var metadata=owner&&owner.user_metadata?owner.user_metadata:{};
@@ -179,8 +180,8 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
     Object.keys(localKeys).forEach(function(k){if(!Object.prototype.hasOwnProperty.call(merged,k))merged[k]=localKeys[k];});
     applyKeys(merged);seedLegacySession();
     var payload={schema:1,ownerUsername:ownerUsername,keys:merged};
-    await saveCloud(payload);lastSyncedPayload=payload;lastSignature=JSON.stringify(payload);
-    document.getElementById('account-label').textContent='@'+visibleUsername+' · '+(displayName||visibleUsername)+' · همگام‌سازی ابری فعال';installPasskeyRegisterButton();
+    if(!offlineMode){await saveCloud(payload);lastSyncedPayload=payload;lastSignature=JSON.stringify(payload);}else{lastSyncedPayload=remote;lastSignature=JSON.stringify(remote);}
+    document.getElementById('account-label').textContent=offlineMode?'حساب شخصی میزان · حالت آفلاین · ذخیره روی دستگاه':'حساب شخصی میزان · همگام‌سازی ابری فعال';installPasskeyRegisterButton();
     gate.classList.add('hidden');workspace.classList.remove('hidden');
     var frame=document.getElementById('appframe');
     frame.onload=function(){lockEmbeddedApp(frame);try{frame.contentWindow.MizanProfile={username:visibleUsername,name:displayName||visibleUsername};}catch(e){}};
@@ -203,7 +204,7 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
   function startSync(){
     if(syncTimer)clearInterval(syncTimer);
     syncTimer=setInterval(async function(){
-      if(busy||!owner||!lastSyncedPayload)return;
+      if(!navigator.onLine||busy||!owner||!lastSyncedPayload)return;
       busy=true;
       try{
         var result=await supa().from('app_data').select('payload').eq('user_id',owner.id).maybeSingle();
@@ -241,6 +242,8 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
       finally{busy=false;}
     },3000);
   }
+  window.addEventListener('online',function(){var label=document.getElementById('account-label');if(label&&owner)label.textContent='حساب شخصی میزان · اینترنت وصل شد · همگام‌سازی در حال انجام';});
+  window.addEventListener('offline',function(){var label=document.getElementById('account-label');if(label&&owner)label.textContent='حساب شخصی میزان · حالت آفلاین · ذخیره روی دستگاه';});
   async function logout(){document.querySelectorAll('.global-nav').forEach(function(n){n.remove();});if(syncTimer)clearInterval(syncTimer);syncTimer=null;owner=null;try{await supa().auth.signOut();}catch(e){}workspace.classList.add('hidden');gate.classList.remove('hidden');form.reset();setMode('login');say('از حساب خارج شدی.',true);}
   form.addEventListener('submit',async function(e){e.preventDefault();if(busy)return;var email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;try{if(rememberEmail.checked)localStorage.setItem('mizan-saved-email',email);else localStorage.removeItem('mizan-saved-email');}catch(storageError){}busy=true;submitBtn.disabled=true;say('در حال انجام...');try{if(mode==='forgot'){if(!email)throw new Error('ایمیل را وارد کن.');var fr=await supa().auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});if(fr.error)throw fr.error;say('اگر این ایمیل ثبت شده باشد، لینک بازیابی برایش ارسال می‌شود.',true);return;}if(mode==='update'){if(password.length<8)throw new Error('رمز جدید باید حداقل ۸ کاراکتر باشد.');var ur=await supa().auth.updateUser({password:password});if(ur.error)throw ur.error;say('رمز عبور با موفقیت تغییر کرد؛ در حال ورود...',true);await prepareWorkspace();return;}if(!email||password.length<8)throw new Error('ایمیل معتبر و رمز حداقل ۸ کاراکتری وارد کن.');if(mode==='signup'){if(await ownerClaimed())throw new Error('حساب مالک قبلاً ساخته شده است؛ از بخش ورود استفاده کن.');var sr=await supa().auth.signUp({email:email,password:password});if(sr.error)throw sr.error;if(!sr.data.session){say('حساب ساخته شد. ایمیلت را تأیید کن؛ سپس از همین صفحه وارد شو.',true);return;}await prepareWorkspace();}else{var lr=await supa().auth.signInWithPassword({email:email,password:password});if(lr.error)throw lr.error;await prepareWorkspace();}}catch(err){if(mode==='login'&&(err.code==='email_not_confirmed'||/email not confirmed/i.test(err.message||'')))resendBtn.classList.remove('hidden');say(err.message||'عملیات انجام نشد.');}finally{busy=false;submitBtn.disabled=false;}});
   resendBtn.addEventListener('click',async function(){var email=emailInput.value.trim();if(!email){say('ابتدا ایمیل را وارد کن.');return;}resendBtn.disabled=true;try{var rr=await supa().auth.resend({type:'signup',email:email});if(rr.error)throw rr.error;say('در صورت امکان، ایمیل تأیید دوباره ارسال شد. صندوق ورودی و پوشه هرزنامه را بررسی کن.',true);}catch(e){say(e.message||'ارسال ایمیل انجام نشد.');}finally{resendBtn.disabled=false;}});
