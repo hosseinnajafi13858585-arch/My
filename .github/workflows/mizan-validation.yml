@@ -1,0 +1,43 @@
+name: Mizan validation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check JavaScript files
+        run: |
+          node --check mizan-enhancements.js
+          node --check sw.js
+      - name: Check inline JavaScript in HTML
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const vm = require('vm');
+          for (const file of ['index.html', 'index-1.html']) {
+            const html = fs.readFileSync(file, 'utf8');
+            const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
+            let checked = 0;
+            for (let i = 0; i < scripts.length; i++) {
+              const attrs = scripts[i][1] || '';
+              const body = scripts[i][2] || '';
+              if (/\bsrc\s*=/.test(attrs) || !body.trim()) continue;
+              if (/\btype\s*=\s*["']application\/json["']/.test(attrs)) continue;
+              new vm.Script(body, { filename: file + ':inline-' + (i + 1) });
+              checked++;
+            }
+            console.log(file + ': ' + checked + ' inline scripts passed');
+          }
+          NODE
+      - name: Validate PWA manifest
+        run: node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8')); console.log('manifest.webmanifest passed')"
