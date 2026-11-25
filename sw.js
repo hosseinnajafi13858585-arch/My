@@ -1,10 +1,10 @@
 'use strict';
-const SHELL_CACHE='mizan-shell-v30';
-const RUNTIME_CACHE='mizan-runtime-v30';
+const SHELL_CACHE='mizan-shell-v31';
+const RUNTIME_CACHE='mizan-runtime-v31';
 const SHELL_FILES=[
   './index.html',
   './index-1.html',
-  './mizan-enhancements.js?v=15',
+  './mizan-enhancements.js?v=16',
   './manifest.webmanifest',
   './icon.svg',
   './apple-touch-icon.png'
