@@ -2275,7 +2275,7 @@ var Finance=(function(){
     try{
       if(typeof Reminders==='undefined')return;
       var list=Reminders.load()||[],existing=list.find(function(r){return r.financeInstallmentId===x.id;}),paid=num(x.paid_amount),remaining=Math.max(0,num(x.amount)-paid);
-      var payload={title:'سررسید قسط '+x.installment_number+' · '+(plan.title||'برنامه اقساط'),dateTime:reminderDateTime(x.due_date),repeat:'',completed:remaining<=0,notes:'مبلغ قسط: '+money(x.amount)+' · پرداخت‌شده: '+money(paid)+' · مانده: '+money(remaining),financeInstallmentId:x.id,financePlanId:plan.id,financeAmount:num(x.amount)};
+      var payload={title:'سررسید قسط '+x.installment_number+' · '+(plan.title||'برنامه اقساط'),dateTime:reminderDateTime(x.due_date),repeat:'',completed:remaining<=0,notes:'مبلغ قسط: '+money(x.amount)+' · پرداخت‌شده: '+money(paid)+' · مانده: '+money(remaining),financeInstallmentId:x.id,financePlanId:plan.id,financeAmount:num(x.amount),financeDueDate:x.due_date};
       if(remaining<=0){if(existing)Reminders.update(existing.id,payload);return;}
       if(existing)Reminders.update(existing.id,payload);else Reminders.add(payload);
     }catch(e){console.warn('installment reminder sync failed',e);}
@@ -2478,11 +2478,40 @@ var App=(function(){
       setTimeout(function(){AuthUI.show();},50);
     });
   }
+  var localReminderNotificationTimer=null;
+  function startLocalReminderNotifications(){
+    if(localReminderNotificationTimer)return;
+    function check(){
+      try{
+        if(!window.Notification||Notification.permission!=='granted')return;
+        if(!Auth.getUser())return;
+        var now=Date.now(),rows=Reminders.load()||[];
+        rows.forEach(function(r){
+          if(!r||r.completed||!r.dateTime)return;
+          var dueAt=new Date(r.dateTime).getTime(),age=now-dueAt;
+          if(!Number.isFinite(dueAt)||age<0||age>7*24*60*60*1000)return;
+          var dueDate=r.financeDueDate||new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(dueAt));
+          var key=r.financeInstallmentId?'mizan-installment-notified:'+r.financeInstallmentId+':'+dueDate:'mizan-reminder-notified:'+r.id+':'+r.dateTime;
+          if(localStorage.getItem(key))return;
+          var title=r.financeInstallmentId?'سررسید قسط در میزان':(r.title||'یادآوری میزان');
+          var body=r.notes||'زمان یادآوری فرا رسیده است.';
+          var options={body:body,tag:key,icon:'./icon.svg',data:{url:'./'}};
+          if(navigator.serviceWorker&&navigator.serviceWorker.ready){
+            navigator.serviceWorker.ready.then(function(reg){return reg.showNotification(title,options);}).catch(function(){try{new Notification(title,options);}catch(e){}});
+          }else{try{new Notification(title,options);}catch(e){}}
+          localStorage.setItem(key,String(Date.now()));
+        });
+      }catch(e){console.warn('Local reminder notification check failed',e);}
+    }
+    check();
+    localReminderNotificationTimer=setInterval(check,60000);
+    document.addEventListener('visibilitychange',check);
+  }
   function navigate(page){
     _state.page=page;
     try{var c=document.getElementById('page-content');if(c){c.innerHTML='';var pg=_renderPage();if(pg)c.appendChild(pg);}}catch(e){}
     document.querySelectorAll('.nav-tab').forEach(function(t){t.classList.toggle('active',t.dataset.page===page);});
-    updateBadge();_startClock();
+    updateBadge();_startClock();startLocalReminderNotifications();
   }
   function refresh(){navigate(_state.page);}
   function updateBadge(){try{var n=Reminders.pendingCount();document.querySelectorAll('.bdot').forEach(function(b){b.textContent=n;b.style.display=n>0?'grid':'none';});}catch(e){}}
