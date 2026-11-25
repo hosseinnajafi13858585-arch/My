@@ -339,7 +339,7 @@
       else{status.innerHTML='<span class="mzn-error-dot"></span> دریافت قیمت‌ها ممکن نشد: '+errorMsg(lastError);grid.innerHTML='<div class="mzn-panel">در حال حاضر دادهٔ معتبر بازار در دسترس نیست. اتصال اینترنت را بررسی و دوباره تلاش کن.</div>';}
     }
     root.querySelector('#mzn-market-refresh').onclick=refresh;
-    refresh();
+    setTimeout(refresh,0);
     marketTimer=setInterval(function(){if(!root.isConnected){clearInterval(marketTimer);marketTimer=null;return;}refresh();},30*60*1000);
     return root;
   }
