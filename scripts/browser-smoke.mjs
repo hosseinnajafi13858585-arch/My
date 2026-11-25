@@ -121,18 +121,17 @@ try{
     const routeText=await appFrame.locator('#page-content').innerText();
     if(routeText.includes('خطا در بارگذاری صفحه'))throw new Error('App route threw a render error: '+route);
   }
-  await appFrame.locator('#app').evaluate(()=>{
-    const originalFetch=window.fetch.bind(window);
-    const fixture={meta:{unit:'toman',stale:false,updated_at:'2026-11-25T08:00:00.000Z'},data:[
-      {symbol:'USD_IRR_FREE',name_fa:'دلار آمریکا',price:285000,change_pct:1,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
-      {symbol:'EUR_IRR_FREE',name_fa:'یورو',price:313000,change_pct:.5,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
-      {symbol:'GBP_IRR_FREE',name_fa:'پوند انگلیس',price:374000,change_pct:.4,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
-      {symbol:'GOLD_18K_IRR',name_fa:'طلای ۱۸ عیار',price:25200000,change_pct:-.5,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
-      {symbol:'COIN_EMAMI_IRR',name_fa:'سکه امامی',price:264000000,change_pct:.7,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
-      {symbol:'USDT_IRR',name_fa:'تتر',price:291000,change_pct:1.8,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'nobitex'}
-    ]};
-    window.fetch=async function(input,init){if(String(input).includes('popular.json'))return new Response(JSON.stringify(fixture),{status:200,headers:{'Content-Type':'application/json'}});return originalFetch(input,init);};
-  });
+  const marketFixture={meta:{unit:'toman',stale:false,updated_at:'2026-11-25T08:00:00.000Z'},data:[
+    {symbol:'USD_IRR_FREE',name_fa:'دلار آمریکا',currency:'IRT',price:285000,change_pct:1,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
+    {symbol:'EUR_IRR_FREE',name_fa:'یورو',currency:'IRT',price:313000,change_pct:.5,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
+    {symbol:'GBP_IRR_FREE',name_fa:'پوند انگلیس',currency:'IRT',price:374000,change_pct:.4,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
+    {symbol:'GOLD_18K_IRR',name_fa:'طلای ۱۸ عیار',currency:'IRT',price:25200000,change_pct:-.5,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
+    {symbol:'COIN_EMAMI_IRR',name_fa:'سکه امامی',currency:'IRT',price:264000000,change_pct:.7,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
+    {symbol:'USDT_IRR',name_fa:'تتر',currency:'IRT',price:291000,change_pct:1.8,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'nobitex'}
+  ]};
+  const marketResponse={status:200,contentType:'application/json',body:JSON.stringify(marketFixture)};
+  await page.route('https://raw.githubusercontent.com/iran-market/iran-market.github.io/main/data/popular.json',route=>route.fulfill(marketResponse));
+  await page.route('https://cdn.jsdelivr.net/gh/iran-market/iran-market.github.io@main/data/popular.json',route=>route.fulfill(marketResponse));
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('market'));
   await appFrame.locator('.mzn-market-card').nth(5).waitFor({state:'visible',timeout:10000});
   const marketText=await appFrame.locator('.mzn-market').innerText();
