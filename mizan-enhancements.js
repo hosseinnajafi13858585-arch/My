@@ -262,55 +262,30 @@
   }
   function normalizeMarketPayload(payload) {
     if (!payload || !Array.isArray(payload.data)) throw new Error('ساختار اطلاعات بازار معتبر نیست.');
-    var unit = String(payload.meta && payload.meta.unit || '').toLowerCase();
-    if (unit && unit !== 'toman') throw new Error('واحد قیمت‌های بازار تومان نیست.');
     var definitions = [
-      ['USD_IRR_FREE','usd','دلار آمریکا'],
-      ['EUR_IRR_FREE','eur','یورو'],
-      ['GBP_IRR_FREE','gbp','پوند انگلیس'],
-      ['GOLD_18K_IRR','gold-18k','طلای ۱۸ عیار · هر گرم'],
-      ['COIN_EMAMI_IRR','coin-emami','سکه امامی'],
-      ['USDT_IRR','usdt','تتر']
+      ['USD_IRR_FREE','دلار آمریکا'],['EUR_IRR_FREE','یورو'],['GBP_IRR_FREE','پوند انگلیس'],
+      ['GOLD_18K_IRR','طلای ۱۸ عیار · هر گرم'],['COIN_EMAMI_IRR','سکه امامی'],['USDT_IRR','تتر']
     ];
     var out = [];
     definitions.forEach(function (def) {
-      var raw = payload.data.find(function (x) { return x.symbol === def[0]; });
-      if (!raw || !Number.isFinite(Number(raw.price)) || Number(raw.price) <= 0) return;
-      var stamp = raw.timestamp_tehran || raw.timestamp || (payload.meta && payload.meta.updated_at) || null;
-      var stampMs = stamp ? new Date(stamp).getTime() : 0;
+      var raw = payload.data.find(function (x) { return x && x.symbol === def[0]; });
+      if (!raw || raw.price == null || !Number.isFinite(Number(raw.price)) || Number(raw.price) <= 0) return;
+      var currency=String(raw.currency || payload.meta && payload.meta.currency || '').toUpperCase();
+      var price=Number(raw.price);
+      if(currency==='IRR')price=price/10;
+      else if(currency!=='IRT'&&currency!=='TOMAN'&&currency!=='')return;
+      var stamp=raw.timestamp_tehran||raw.checked_at||raw.timestamp||(payload.meta&&payload.meta.published_at)||null;
+      var stampMs=stamp?new Date(stamp).getTime():0;
       out.push({
-        id: def[1], symbol: raw.symbol, name: raw.name_fa || def[2],
-        price: Number(raw.price), change_pct: raw.change_pct == null ? null : Number(raw.change_pct),
-        updated_utc: raw.timestamp || (payload.meta && payload.meta.updated_at) || null,
-        updated_display: stamp, stale: !!raw.stale || !!(payload.meta && payload.meta.stale) || !stampMs || Date.now() - stampMs > 45 * 60 * 1000,
-        source: raw.source || 'Iran Market Data'
+        id:def[0],symbol:raw.symbol,name:raw.name_fa||def[1],price:price,currency:'IRT',
+        change_pct:raw.change_pct==null?null:Number(raw.change_pct),
+        updated_utc:raw.timestamp||raw.checked_at||null,updated_display:stamp,
+        stale:!!raw.stale||!stampMs||Date.now()-stampMs>45*60*1000,
+        source:raw.source||'Iran Market Data'
       });
     });
-    if (!out.length) throw new Error('هیچ‌کدام از نمادهای اصلی بازار در پاسخ موجود نیست.');
+    if(!out.length)throw new Error('هیچ‌کدام از نمادهای اصلی بازار در پاسخ موجود نیست.');
     return out;
-  }
-  async function fetchMarketPayload() {
-    var urls = [
-      'https://raw.githubusercontent.com/iran-market/iran-market.github.io/main/data/popular.json',
-      'https://cdn.jsdelivr.net/gh/iran-market/iran-market.github.io@main/data/popular.json'
-    ];
-    var lastError = null;
-    for (var i = 0; i < urls.length; i++) {
-      try {
-        var response = await fetch(urls[i], { cache: 'no-store' });
-        if (!response.ok) throw new Error('پاسخ سرویس بازار: ' + response.status);
-        var payload = await response.json();
-        return { payload: payload, items: normalizeMarketPayload(payload), endpoint: urls[i] };
-      } catch (e) { lastError = e; }
-    }
-    throw lastError || new Error('دریافت اطلاعات بازار انجام نشد.');
-  }
-  function renderMarketCards(grid, items) {
-    grid.innerHTML = items.map(function (x) {
-      var pct = x.change_pct == null || !Number.isFinite(x.change_pct) ? 'بدون تغییر ثبت‌شده' : ((x.change_pct > 0 ? '+' : '') + x.change_pct.toLocaleString('fa-IR', { maximumFractionDigits: 2 }) + '٪');
-      var trend = x.change_pct > 0 ? 'up' : x.change_pct < 0 ? 'down' : 'flat';
-      return '<article class="mzn-market-card"><div class="mzn-market-card-head"><span>' + h(x.name) + '</span><span class="mzn-trend ' + trend + '">' + pct + '</span></div><strong>' + money(x.price) + '</strong><small>آخرین ثبت قیمت: ' + h(marketTime(x.updated_display || x.updated_utc)) + '</small>' + (x.stale ? '<em class="mzn-stale">اطلاعات ممکن است قدیمی باشد.</em>' : '<em class="mzn-fresh">آخرین داده در دسترس</em>') + '</article>';
-    }).join('');
   }
   function renderMarket() {
     if (marketTimer) clearInterval(marketTimer);
