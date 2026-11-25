@@ -228,6 +228,7 @@
     if (!user || !c) return;
     for (var i = 0; i < items.length; i++) {
       var item = items[i];
+      if(item.id==='bitcoin'&&item.currency!=='IRT')continue;
       try {
         var last = await c.from('mizan_market_snapshots').select('captured_at').eq('user_id', user.id).eq('symbol', item.id).order('captured_at', { ascending: false }).limit(1).maybeSingle();
         if (last.error) continue;
