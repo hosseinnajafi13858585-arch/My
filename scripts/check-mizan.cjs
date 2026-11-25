@@ -29,6 +29,8 @@ if(!ext.includes('weatherLastCoords.accuracy')||!ext.includes('navigator.geoloca
 if(!ext.includes('api.coingecko.com/api/v3/simple/price')||!ext.includes("if(bitcoin)items.push(bitcoin)"))throw Error('Bitcoin market quote missing');
 if(!html.includes('mzn-home-weather-wrap')||!ext.includes('homeWeather.appendChild(weatherCard)'))throw Error('Home weather placement missing');
 if(!entryHtml.includes('mzn-theme-christmas')||!entryHtml.includes('mzn-theme-nowruz'))throw Error('Login seasonal theme missing');
+if(!html.includes('settleMonth:settleMonth')||!html.includes('md-settle')||!html.includes('isMonthSettled')||!html.includes('localeCompare(String(b.item.date'))throw Error('Monthly settlement lock or date sorting missing');
+if(!html.includes('brand-date{display:none!important}')||!html.includes('topbar-in{display:flex!important'))throw Error('Compact header styles missing');
 for(const icon of manifest.icons||[])if(!fs.existsSync(icon.src.replace(/^\.\//,'')))throw Error('Missing manifest icon '+icon.src);
 const shell=(sw.match(/const SHELL_FILES=\[([\s\S]*?)\];/)||[])[1];
 if(!shell)throw Error('Missing service worker shell list');
