@@ -61,5 +61,7 @@ assert.equal(dateTest.iso,'2026-11-25T06:00:00.000Z');
 assert.equal(dateTest.local,'2026-11-25T09:30');
 assert.match(read('mizan-enhancements.js'),/toLocaleDateString\('fa-IR-u-ca-persian',\{timeZone:'Asia\/Tehran'\}\)/,'Document dates must use Tehran timezone');
 assert.match(appHtml,/table==='personal_debt'\?'updated_at':'created_at'/,'Personal debt queries must sort by the existing updated_at column');
+assert.match(appHtml,/payload\.updated_at=new Date\(\)\.toISOString\(\)/,'Personal debt updates must refresh updated_at');
+assert.match(appHtml,/parentPatch\.updated_at=new Date\(\)\.toISOString\(\)/,'Debt payments must refresh updated_at');
 assert.doesNotMatch(['index.html','index-1.html','mizan-enhancements.js','sw.js'].map(read).join('\n'),/sb_secret_[A-Za-z0-9_-]+|service_role/i,'Privileged Supabase secret detected in public client code');
 console.log('PWA manifest, install hooks, offline auth guard, precache assets, and public-key safety checks passed.');
