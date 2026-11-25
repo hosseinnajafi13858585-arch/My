@@ -52,7 +52,8 @@ assert.match(read('index.html'),/apple-mobile-web-app-capable/,'iOS web app meta
 assert.match(read('index-1.html'),/mizan-premium-motion-v1/,'App motion layer missing');
 assert.match(read('mizan-enhancements.js'),/mzn-modal-open/,'Modal must suppress parent floating navigation');
 assert.match(read('mizan-enhancements.js'),/new MutationObserver\(syncModalLayer\)/,'Modal navigation guard observer missing');
-assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=17/,'Enhancement cache version mismatch');
+assert.match(read('mizan-enhancements.js'),/modalApi\.open=function/,'Modal API wrapper must synchronously hide floating controls');
+assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=18/,'Enhancement cache version mismatch');
 const appHtml=read('index-1.html');
 const dateHelpers=appHtml.match(/function isoToTehranDateTimeInput[\s\S]*?(?=function openReminderForm)/)?.[0];
 assert.ok(dateHelpers,'Tehran datetime helpers are missing');
