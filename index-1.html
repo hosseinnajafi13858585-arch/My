@@ -1412,7 +1412,7 @@ var Achievements=(function(){
   {id:'steady_sales',title:'فروش مستمر',desc:'حداقل ۵۰ میلیون فروش در ۲۰ روز کاری',icon:'trendingUp',target:50000000,unit:'تومان',value:function(s){return s.sales;}},
   {id:'expense_control',title:'مدیریت هزینه',desc:'هزینه‌ها حداکثر ۳۰٪ فروش ماهانه باشد',icon:'wallet',target:30,unit:'٪',value:function(s){return s.sales>0&&s.expenses>0?s.expenses/s.sales*100:0;}}
  ];
- function monthInfo(){var t=Jalali.today();return{year:+t[0],month:+t[1],key:String(t[0])+'-'+String(t[1]).padStart(2,'0')};}
+ function monthInfo(){var parts=new Intl.DateTimeFormat('en-US-u-ca-persian',{timeZone:'Asia/Tehran',year:'numeric',month:'numeric'}).formatToParts(new Date()),v={};parts.forEach(function(p){if(p.type!=='literal')v[p.type]=Number(p.value);});return{year:v.year,month:v.month,key:String(v.year)+'-'+String(v.month).padStart(2,'0')};}
  function snapshot(u,m){m=m||monthInfo();var rows=(Records.getAll(u)||[]).filter(function(r){return +r.year===m.year&&+r.mi===m.month;}),o={rows:rows,sales:0,hours:0,commission:0,workDays:0,expenses:0,noMissing:false};rows.forEach(function(r){var x=r.stats||{};o.sales+=+x.totalSales||0;o.hours+=+x.totalHours||0;o.commission+=+x.commission||0;o.workDays+=+x.workDays||0;o.expenses+=+x.totalExpenses||0;});o.noMissing=rows.length>0&&o.workDays>0&&rows.every(function(r){try{return Payroll.missingDays(r.data,r.year,r.mi).length===0;}catch(e){return false;}});return o;}
  function key(u,m){return Store.auxKey(N+'-'+(m||monthInfo().key),u);}
  function getUnlocked(u,m){return LS.getJ(key(u,m),[]);}
