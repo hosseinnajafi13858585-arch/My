@@ -298,7 +298,9 @@
         var pct=x.change_pct==null?'تغییر روزانه ثبت نشده':((x.change_pct>0?'+':'')+Number(x.change_pct).toLocaleString('fa-IR',{maximumFractionDigits:2})+'٪');
         var trend=x.change_pct>0?'up':x.change_pct<0?'down':'flat';
         var advice=x.stale||x.change_pct==null?{text:'داده کافی یا تازه برای ارزیابی وجود ندارد؛ فعلاً تصمیم نگیر.',cls:'stale'}:x.change_pct<=-1.5?{text:'افت روزانه؛ فقط بررسی خرید پله‌ای پس از بررسی روند بلندمدت.',cls:'buy'}:x.change_pct>=1.5?{text:'رشد روزانه؛ اگر از قبل داری، بررسی فروش بخشی و ذخیره سود.',cls:'sell'}:{text:'تغییر محدود؛ فعلاً صبر و نگهداری، بدون سیگنال قوی.',cls:'wait'};
-        var priceText=x.id==='bitcoin'?(x.currency==='IRT'?money(x.price):'
+        var priceText=x.id==='bitcoin'?(x.currency==='IRT'?money(x.price):'$'+Number(x.price).toLocaleString('en-US',{maximumFractionDigits:2})):money(x.price);
+        var btcSub=x.id==='bitcoin'?'<small>قیمت جهانی: $'+Number(x.usd||0).toLocaleString('en-US',{maximumFractionDigits:2})+(x.currency==='IRT'?' · تبدیل تقریبی با نرخ دلار بازار':' · تبدیل تومانی در دسترس نیست')+'</small>':'';
+        return '<article class="mzn-market-card mzn-bitcoin-card"><div class="mzn-market-card-head"><span>'+(x.id==='bitcoin'?'₿ ':'')+h(labels[x.id]||x.name||x.id)+'</span><span class="mzn-trend '+trend+'">'+pct+'</span></div><strong>'+priceText+'</strong>'+btcSub+'<small>آخرین به‌روزرسانی: '+h(marketTime(x.updated_display||x.updated_utc||publishedAt))+'</small><em class="mzn-market-advice '+advice.cls+'">'+advice.text+'</em>'+(fromCache||x.stale?'<em class="mzn-stale">دادهٔ ذخیره‌شده یا قدیمی است.</em>':'')+'</article>';
       }).join('');
       var time=marketTime(publishedAt||items[0].updated_utc);
       status.innerHTML=(fromCache?'<span class="mzn-error-dot"></span>':'<span class="mzn-live-dot"></span>')+(fromCache?'نمایش آخرین دادهٔ ذخیره‌شده':'داده‌ها با موفقیت دریافت شدند')+' · زمان انتشار: '+h(time);
