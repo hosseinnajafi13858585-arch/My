@@ -708,6 +708,8 @@ html,body{background:var(--bg)}body{background:radial-gradient(ellipse at 12% 4%
 
 @media(max-width:600px){.topbar-in{display:grid!important;grid-template-columns:repeat(6,36px);grid-auto-rows:auto;justify-content:start;align-items:center;column-gap:8px;row-gap:9px;padding-top:9px!important;padding-bottom:10px!important}.topbar-in .brand{grid-column:1/-1;grid-row:1;justify-self:end;order:0;margin:0!important}.topbar-in .topbar-spacer{display:none!important}.topbar-in .ib{grid-row:2;justify-self:start;width:36px;height:36px}}
 .mzn-documents .mzn-panel .mzn-panel-head>svg{width:22px!important;height:22px!important;max-width:22px!important;max-height:22px!important;flex:0 0 22px!important}.mzn-fin-overview .mzn-panel-head>svg{width:24px!important;height:24px!important;max-width:24px!important;max-height:24px!important;flex:0 0 24px!important}
+
+.mzn-compare-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}.mzn-compare-item{padding:14px;border:1px solid var(--bd);border-radius:16px;background:rgba(255,255,255,.025);display:flex;flex-direction:column;gap:7px;min-width:0}.mzn-compare-title{font-size:12px;color:var(--txs)}.mzn-compare-item strong{font-size:17px;overflow-wrap:anywhere}.mzn-compare-item small,.mzn-compare-delta{font-size:11px;color:var(--txs)}.mzn-compare-track{height:6px;background:var(--bd);border-radius:9px;overflow:hidden}.mzn-compare-track i{display:block;height:100%;background:linear-gradient(90deg,#3d9c76,#9ac8a6);border-radius:9px}.mzn-alert{padding:14px;border-radius:14px;margin-top:12px;border:1px solid var(--bd)}.mzn-alert p{font-size:12px;margin-top:6px;color:var(--txs);line-height:1.8}.mzn-alert-warning{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3)}.mzn-alert-danger{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3)}.mzn-alert-success{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.3)}.mzn-weather-empty{text-align:center;padding:26px 12px}.mzn-weather-empty>span{font-size:42px}.mzn-weather-empty p{font-size:12px;color:var(--txs);margin:8px 0 16px}.mzn-weather-now{display:flex;align-items:center;gap:18px;padding:10px}.mzn-weather-icon{font-size:56px}.mzn-weather-now small,.mzn-weather-now p{color:var(--txs);font-size:12px}.mzn-weather-now strong{font-size:42px;display:block}.mzn-weather-metrics,.mzn-weather-days{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:14px}.mzn-weather-metrics span,.mzn-weather-days>div{padding:12px;border:1px solid var(--bd);border-radius:12px;font-size:12px}.mzn-weather-days>div{display:flex;flex-direction:column;gap:5px}.mzn-weather-days small{color:var(--txs)}@media(max-width:420px){.mzn-compare-grid{grid-template-columns:1fr}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -2482,6 +2484,9 @@ var App=(function(){
         case'reminders-db':return window.MizanEnhancements.reminders();
         case'calendar':return window.MizanEnhancements.calendar();
         case'more':return window.MizanEnhancements.more();
+        case'compare':return window.MizanEnhancements.compare();
+        case'behavior':return window.MizanEnhancements.behavior();
+        case'weather':return window.MizanEnhancements.weather();
         case'today':return UI.renderToday(_state);
         case'months':return UI.renderMonths(_state);
         case'month-detail':return UI.renderMonthDetail(_state);
@@ -2704,6 +2709,6 @@ document.addEventListener('DOMContentLoaded',function(){
   App.init();
 },false);
 </script>
-<script src="./mizan-enhancements.js?v=31"></script>
+<script src="./mizan-enhancements.js?v=32"></script>
 </body>
 </html>
