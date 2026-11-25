@@ -296,7 +296,7 @@
       head('بازار و قیمت‌ها', 'نرخ‌های بازار آزاد ایران · نمایش قیمت‌ها به تومان') +
       '<div class="mzn-market-status" id="mzn-market-status">در حال دریافت آخرین قیمت‌ها...</div>' +
       '<div class="mzn-market-grid" id="mzn-market-grid"><div class="mzn-panel">در حال بارگذاری...</div></div>' +
-      '<div class="mzn-panel mzn-market-note"><b>زمان و اعتبار داده‌ها</b><p>قیمت‌ها بر اساس آخرین زمان ثبت‌شده از بازار نمایش داده می‌شوند. انتشار داده‌ها ممکن است با تأخیر انجام شود؛ زمان آخرین دریافت هر قیمت و هشدار کهنگی کنار آن آمده است.</p><p>داده‌ها از مجموعهٔ عمومی <a href="https://github.com/iran-market/iran-market.github.io" target="_blank" rel="noopener">Iran Market Data</a> دریافت می‌شوند. قیمت‌ها جهت اطلاع‌اند و توصیهٔ خرید یا فروش نیستند.</p></div>' +
+      '<div class="mzn-panel mzn-market-note"><b>زمان و اعتبار داده‌ها</b><p>قیمت‌ها بر اساس آخرین زمان ثبت‌شده از بازار نمایش داده می‌شوند. انتشار داده‌ها ممکن است با تأخیر انجام شود؛ زمان آخرین دریافت هر قیمت و هشدار کهنگی کنار آن آمده است.</p><p>داده‌ها از مجموعهٔ عمومی <a href="https://github.com/iran-market/iran-market.github.io" target="_blank" rel="noopener">Iran Market Data</a> دریافت می‌شوند. ارزیابی زیر هر قیمت فقط بر پایهٔ تغییر روزانه است و توصیهٔ سرمایه‌گذاری نیست؛ پیش از خرید یا فروش، روند چندروزه و شرایط خودت را هم بررسی کن.</p></div>' +
       button('mzn-market-refresh', 'به‌روزرسانی', Icons.refresh, 'btn btn-ghost')
     );
     var labels = {
