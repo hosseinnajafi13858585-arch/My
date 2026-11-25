@@ -121,6 +121,7 @@ try{
     const routeText=await appFrame.locator('#page-content').innerText();
     if(routeText.includes('خطا در بارگذاری صفحه'))throw new Error('App route threw a render error: '+route);
   }
+  await appFrame.locator('#app').evaluate(()=>window.App.navigate('today'));
   const marketFixture={meta:{unit:'toman',stale:false,updated_at:'2026-11-25T08:00:00.000Z'},data:[
     {symbol:'USD_IRR_FREE',name_fa:'دلار آمریکا',currency:'IRT',price:285000,change_pct:1,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
     {symbol:'EUR_IRR_FREE',name_fa:'یورو',currency:'IRT',price:313000,change_pct:.5,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
