@@ -50,7 +50,7 @@ assert.match(read('index.html'),/auth\.getSession\(\)/,'Offline entry must requi
 assert.match(read('index.html'),/beforeinstallprompt/,'Android install prompt handler missing');
 assert.match(read('index.html'),/apple-mobile-web-app-capable/,'iOS web app metadata missing');
 assert.match(read('index-1.html'),/mizan-premium-motion-v1/,'App motion layer missing');
-assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=23/,'Enhancement cache version mismatch');
+assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=24/,'Enhancement cache version mismatch');
 const appHtml=read('index-1.html');
 assert.match(appHtml,/function syncParentModalLayer\(open\)/,'Modal layer synchronization missing');
 assert.match(appHtml,/syncParentModalLayer\(true\)/,'Opening a modal must suppress floating navigation');
@@ -72,6 +72,8 @@ assert.match(appHtml,/syncInstallmentReminder\(plan,x\)/,'Installment reminder s
 assert.match(appHtml,/Reminders\.add\(payload\)/,'New installment must create an app reminder');
 assert.match(appHtml,/requestInstallmentNotificationPermission/,'Installment notification permission flow missing');
 assert.match(appHtml,/checkInstallmentNotifications/,'Installment notification scheduler missing');
+assert.match(appHtml,/startLocalReminderNotifications/,'Global local reminder notification scheduler missing');
+assert.match(appHtml,/financeDueDate:x\.due_date/,'Installment due date must be stored with the local reminder');
 assert.match(appHtml,/جمع اقساط/,'Installment total display missing');
 const scheduleHelpers=appHtml.match(/function scheduleRowsHtml\(count,total,firstDate\)[\s\S]*?(?=function requestInstallmentNotificationPermission)/)?.[0];
 assert.ok(scheduleHelpers,'Installment schedule HTML helper extraction failed');
