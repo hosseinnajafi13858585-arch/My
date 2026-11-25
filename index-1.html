@@ -2307,11 +2307,12 @@ var Finance=(function(){
     var row={user_id:user.id,title:title,body:body,notification_type:type,event_key:eventKey,metadata:metadata||{}};
     var r=await client.from('mizan_notifications').upsert(row,{onConflict:'user_id,event_key',ignoreDuplicates:true}).select('id,created_at');
     if(r.error)throw r.error;var created=!!(r.data&&r.data.length);
-    if(created){data.notifications.unshift({id:r.data[0].id,title:title,body:body,notification_type:type,event_key:eventKey,metadata:metadata||{},created_at:r.data[0].created_at||new Date().toISOString(),read_at:null});
-      if(window.Notification&&Notification.permission==='granted'){var opts={body:body,tag:eventKey,icon:'./icon.svg',badge:'./icon.svg',data:{url:'./'}};
-        if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(function(reg){return reg.showNotification(title,opts);}).catch(function(){try{new Notification(title,opts);}catch(e){}});
-        else try{new Notification(title,opts);}catch(e){}
-      }
+    if(created)data.notifications.unshift({id:r.data[0].id,title:title,body:body,notification_type:type,event_key:eventKey,metadata:metadata||{},created_at:r.data[0].created_at||new Date().toISOString(),read_at:null});
+    var osKey='mizan-os-notified:'+eventKey,alreadyShown=false;try{alreadyShown=localStorage.getItem(osKey)==='1';}catch(e){}
+    if(window.Notification&&Notification.permission==='granted'&&!alreadyShown){var opts={body:body,tag:eventKey,icon:'./icon.svg',badge:'./icon.svg',data:{url:'./'}};
+      if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(function(reg){return reg.showNotification(title,opts);}).catch(function(){try{new Notification(title,opts);}catch(e){}});
+      else try{new Notification(title,opts);}catch(e){}
+      try{localStorage.setItem(osKey,'1');}catch(e){}
     }return true;
   }
   async function notifyInstallmentDue(x,plan){
