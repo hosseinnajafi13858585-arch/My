@@ -315,49 +315,76 @@
   function renderMarket() {
     if (marketTimer) clearInterval(marketTimer);
     var root = el('mzn-page mzn-market',
-      head('بازار و قیمت‌ها', 'قیمت‌های بازار آزاد · واحد نمایش تومان') +
+      head('بازار و قیمت‌ها', 'نرخ‌های بازار آزاد ایران · نمایش قیمت‌ها به تومان') +
       '<div class="mzn-market-status" id="mzn-market-status">در حال دریافت آخرین قیمت‌ها...</div>' +
       '<div class="mzn-market-grid" id="mzn-market-grid"><div class="mzn-panel">در حال بارگذاری...</div></div>' +
-      '<div class="mzn-panel mzn-market-note"><b>درباره قیمت‌ها</b><p>قیمت‌ها به تومان نمایش داده می‌شوند و زمان ثبت هر نرخ کنار آن آمده است. در صورت اختلال ارتباط، آخرین داده ذخیره‌شده نمایش داده می‌شود و وضعیت آن مشخص خواهد بود.</p><p>منبع داده: <a href="https://github.com/iran-market/iran-market.github.io" target="_blank" rel="noopener">Iran Market Data</a> · نرخ‌ها جنبه اطلاع‌رسانی دارند و توصیه خرید یا فروش نیستند.</p></div>' +
+      '<div class="mzn-panel mzn-market-note"><b>زمان و اعتبار داده‌ها</b><p>قیمت‌ها بر اساس آخرین زمان ثبت‌شده از بازار نمایش داده می‌شوند. انتشار داده‌ها ممکن است با تأخیر انجام شود؛ زمان آخرین دریافت هر قیمت و هشدار کهنگی کنار آن آمده است.</p><p>داده‌ها از مجموعهٔ عمومی <a href="https://github.com/iran-market/iran-market.github.io" target="_blank" rel="noopener">Iran Market Data</a> دریافت می‌شوند. قیمت‌ها جهت اطلاع‌اند و توصیهٔ خرید یا فروش نیستند.</p></div>' +
       button('mzn-market-refresh', 'به‌روزرسانی', Icons.refresh, 'btn btn-ghost')
     );
-    var status = root.querySelector('#mzn-market-status'), grid = root.querySelector('#mzn-market-grid');
-    try {
-      var cached = JSON.parse(localStorage.getItem('mizan-market-cache-v2') || 'null');
-      if (Array.isArray(cached) && cached.length) {
-        marketCache = cached;
-        renderMarketCards(grid, cached);
-        status.textContent = 'آخرین قیمت ذخیره‌شده نمایش داده می‌شود؛ در حال بررسی به‌روزرسانی...';
-      }
-    } catch (e) {}
-    async function refresh() {
-      if (!status || !grid || !root.isConnected) return;
-      status.textContent = 'در حال دریافت قیمت‌های بازار...';
-      try {
-        var result = await fetchMarketPayload(), items = result.items, payload = result.payload;
-        marketCache = items;
-        try { localStorage.setItem('mizan-market-cache-v2', JSON.stringify(items)); } catch (e) {}
-        renderMarketCards(grid, items);
-        var updated = payload.meta && (payload.meta.updated_at || payload.meta.published_at);
-        status.innerHTML = '<span class="mzn-live-dot"></span> آخرین به‌روزرسانی داده‌ها: ' + h(marketTime(updated || items[0].updated_display || items[0].updated_utc)) + ' · بررسی خودکار هر ۳۰ دقیقه';
-        try { var sess = await session(); await saveMarketHistory(items, sess.user, sess.client); } catch (e) { console.warn('market history sync failed', e); }
-      } catch (e) {
-        if (marketCache && marketCache.length) {
-          var oldItems = marketCache.map(function (x) { return Object.assign({}, x, { stale: true }); });
-          renderMarketCards(grid, oldItems);
-          status.innerHTML = '<span class="mzn-error-dot"></span> به‌روزرسانی انجام نشد؛ آخرین قیمت ذخیره‌شده نمایش داده می‌شود. ' + h(errorMsg(e));
-        } else {
-          status.innerHTML = '<span class="mzn-error-dot"></span> دریافت قیمت‌ها ناموفق بود: ' + h(errorMsg(e));
-          grid.innerHTML = '<div class="mzn-panel">در حال حاضر اطلاعات بازار در دسترس نیست. اتصال اینترنت را بررسی کن و دوباره تلاش کن.</div>';
-        }
-      }
+    var labels = {
+      USD_IRR_FREE:'دلار آمریکا', EUR_IRR_FREE:'یورو',
+      GOLD_18K_IRR:'طلای ۱۸ عیار · هر گرم', COIN_EMAMI_IRR:'سکه امامی',
+      USDT_IRR:'تتر'
+    };
+    function normalize(payload){
+      var sourceRows=payload&&Array.isArray(payload.data)?payload.data:[];
+      var ids=Object.keys(labels),items=[];
+      ids.forEach(function(symbol){
+        var x=sourceRows.find(function(row){return row&&row.symbol===symbol;});
+        if(!x||x.price==null||!Number.isFinite(Number(x.price))||Number(x.price)<=0)return;
+        var currency=String(x.currency||'').toUpperCase(),price=Number(x.price);
+        if(currency==='IRR')price=price/10;
+        else if(currency!=='IRT'&&currency!=='TOMAN')return;
+        items.push({
+          id:symbol,name:x.name_fa||labels[symbol],price:price,currency:'IRT',
+          change_pct:x.change_pct==null?null:Number(x.change_pct),
+          updated_utc:x.timestamp_tehran||x.checked_at||x.timestamp||payload.meta&&payload.meta.published_at||null,
+          stale:!!x.stale,source:x.source||'Iran Market Data'
+        });
+      });
+      if(!items.length)throw new Error('ساختار پاسخ یا نمادهای بازار معتبر نیستند.');
+      return items;
     }
-    root.querySelector('#mzn-market-refresh').onclick = refresh;
+    function renderItems(items,fromCache,publishedAt){
+      var grid=root.querySelector('#mzn-market-grid'),status=root.querySelector('#mzn-market-status');
+      if(!grid||!status)return;
+      grid.innerHTML=items.map(function(x){
+        var pct=x.change_pct==null?'تغییر روزانه ثبت نشده':((x.change_pct>0?'+':'')+Number(x.change_pct).toLocaleString('fa-IR',{maximumFractionDigits:2})+'٪');
+        var trend=x.change_pct>0?'up':x.change_pct<0?'down':'flat';
+        return '<article class="mzn-market-card"><div class="mzn-market-card-head"><span>'+h(labels[x.id]||x.name||x.id)+'</span><span class="mzn-trend '+trend+'">'+pct+'</span></div><strong>'+money(x.price)+'</strong><small>آخرین زمان ثبت: '+h(marketTime(x.updated_utc||publishedAt))+'</small>'+(fromCache||x.stale?'<em class="mzn-stale">دادهٔ ذخیره‌شده یا قدیمی؛ برای تصمیم مالی دوباره بررسی کن.</em>':'<em class="mzn-fresh">آخرین دادهٔ دریافتی</em>')+'</article>';
+      }).join('');
+      var time=marketTime(publishedAt||items[0].updated_utc);
+      status.innerHTML=(fromCache?'<span class="mzn-error-dot"></span>':'<span class="mzn-live-dot"></span>')+(fromCache?'نمایش آخرین دادهٔ ذخیره‌شده':'داده‌ها با موفقیت دریافت شدند')+' · زمان انتشار: '+h(time);
+    }
+    async function refresh(){
+      var status=root.querySelector('#mzn-market-status'),grid=root.querySelector('#mzn-market-grid');
+      if(!status||!grid||!root.isConnected)return;
+      status.textContent='در حال دریافت قیمت‌ها...';
+      var urls=[
+        'https://raw.githubusercontent.com/iran-market/iran-market.github.io/main/data/popular.json',
+        'https://cdn.jsdelivr.net/gh/iran-market/iran-market.github.io@main/data/popular.json'
+      ],lastError=null;
+      for(var n=0;n<urls.length;n++){
+        try{
+          var response=await fetch(urls[n],{cache:'no-store'});
+          if(!response.ok)throw new Error('پاسخ سرویس بازار: '+response.status);
+          var payload=await response.json(),items=normalize(payload);
+          marketCache=items;
+          try{localStorage.setItem('mizan-market-cache-v2',JSON.stringify({items:items,publishedAt:payload.meta&&payload.meta.published_at,savedAt:new Date().toISOString()}));}catch(e){}
+          renderItems(items,false,payload.meta&&payload.meta.published_at);
+          try{var s=await session();if(s.user)await saveMarketHistory(items,s.user,s.client);}catch(e){console.warn('market history save failed',e);}
+          return;
+        }catch(e){lastError=e;}
+      }
+      if(!marketCache){
+        try{var cached=JSON.parse(localStorage.getItem('mizan-market-cache-v2')||'null');if(cached&&Array.isArray(cached.items)&&cached.items.length)marketCache=cached.items;}catch(e){}
+      }
+      if(marketCache&&marketCache.length)renderItems(marketCache,true,null);
+      else{status.innerHTML='<span class="mzn-error-dot"></span> دریافت قیمت‌ها ممکن نشد: '+errorMsg(lastError);grid.innerHTML='<div class="mzn-panel">در حال حاضر دادهٔ معتبر بازار در دسترس نیست. اتصال اینترنت را بررسی و دوباره تلاش کن.</div>';}
+    }
+    root.querySelector('#mzn-market-refresh').onclick=refresh;
     refresh();
-    marketTimer = setInterval(function () {
-      if (!root.isConnected) { clearInterval(marketTimer); marketTimer = null; return; }
-      refresh();
-    }, 30 * 60 * 1000);
+    marketTimer=setInterval(function(){if(!root.isConnected){clearInterval(marketTimer);marketTimer=null;return;}refresh();},10*60*1000);
     return root;
   }
 
