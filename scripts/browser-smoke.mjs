@@ -105,6 +105,8 @@ try{
   await appFrame.locator('#app').waitFor({state:'visible',timeout:20000});
   const offlineAppText=await appFrame.locator('#app').innerText();
   if(!offlineAppText.trim()) throw new Error('Authenticated offline app shell did not render');
+  const modalGuardInstalled=await appFrame.locator('#app').evaluate(()=>window.__mizanModalGuardInstalled===true);
+  if(!modalGuardInstalled)throw new Error('Modal overlay guard did not initialize');
   const appOverflow=await appFrame.locator('html').evaluate(el=>el.scrollWidth>window.innerWidth);
   if(appOverflow)throw new Error('Horizontal overflow in the authenticated app at iPhone width');
   const visibleButtons=await appFrame.locator('#app button').count();
@@ -153,7 +155,7 @@ try{
   await appFrame.locator('#tb-theme').click();
 
   if(pageErrors.length) throw new Error('Browser runtime errors: '+pageErrors.join(' | '));
-  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,missingSnapshotBlocked:true,authenticatedOfflineDashboard:true,appOverflow:false,visibleButtons,pageSections,routeCount:routes.length,goalCreate:true,reminderTehranTime:true,storageMonitor:true,navInteraction:true,themeToggle:true,pageErrors},null,2));
+  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,missingSnapshotBlocked:true,authenticatedOfflineDashboard:true,modalGuardInstalled,appOverflow:false,visibleButtons,pageSections,routeCount:routes.length,goalCreate:true,reminderTehranTime:true,storageMonitor:true,navInteraction:true,themeToggle:true,pageErrors},null,2));
 } finally {
   if(browser) await browser.close();
   await new Promise(resolve=>server.close(resolve));
