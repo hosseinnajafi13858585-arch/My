@@ -143,26 +143,17 @@
     return out;
   }
   function forecast(data) {
-    var t = data.today, days = Jalali.daysInMonth(t[0], t[1]), elapsed = Math.max(1, t[2]), stats = data.stats;
-    var variableToDate = stats.netSalary - stats.fixedSalary;
-    var runRate = Math.round(stats.fixedSalary + variableToDate * days / elapsed);
-    var prior = [];
-    for (var i = 1; i <= 5; i++) {
-      var serial = t[0] * 12 + (t[1] - 1) - i;
-      var y = Math.floor(serial / 12), m = serial % 12;
-      var month = Store.loadMonth(y, m), s = Payroll.compute(month, data.cfg);
-      if ((month.hours || []).length || (month.websiteSales || []).length || (month.storeSales || []).length) prior.push(s.netSalary);
-    }
-    var average = prior.length ? Math.round(prior.reduce(function (x, y) { return x + y; }, 0) / prior.length) : null;
-    var projected = prior.length >= 3 ? Math.round(runRate * 0.7 + average * 0.3) : runRate;
-    var deviation = null;
-    if (prior.length >= 3) {
-      var variance = prior.reduce(function (x, y) { return x + Math.pow(y - average, 2); }, 0) / prior.length;
-      deviation = Math.round(Math.sqrt(variance));
-    }
-    return { projected: projected, average: average, sample: prior.length, elapsed: elapsed, days: days,
-      lower: deviation == null ? null : Math.max(0, projected - deviation),
-      upper: deviation == null ? null : projected + deviation };
+    var t=data.today,days=Jalali.daysInMonth(t[0],t[1]),elapsed=Math.max(1,Math.min(days,t[2])),remaining=Math.max(0,days-elapsed),stats=data.stats,month=data.month||{};
+    var closed=new Set((month.leaves||[]).filter(function(x){return x.type==='full'||x.type==='store_closed';}).map(function(x){return x.date;}));
+    var futureWorkDays=0;
+    for(var day=elapsed+1;day<=days;day++){var date=Jalali.fmt(t[0],t[1],day);if(Jalali.weekday(t[0],t[1],day)!==6&&!closed.has(date))futureWorkDays++;}
+    var hoursPerWorkDay=stats.workDays>0?stats.totalHours/stats.workDays:0,futureHours=hoursPerWorkDay*futureWorkDays,projectedHours=stats.totalHours+futureHours;
+    var salesPerCalendarDay=stats.totalSales/elapsed,futureSales=salesPerCalendarDay*remaining,projectedSales=stats.totalSales+futureSales;
+    var commissionPct=Number(stats.commissionPct)||0,projectedCommission=projectedSales*commissionPct/100,projectedHourlySalary=projectedHours*(Number(stats.hourlyRate)||0);
+    var fixedSalary=Number(stats.fixedSalary)||0,benefits=Number(stats.totalBenefits)||0,eligibleExpenses=Number(stats.totalExpenses)||0,deductions=Number(stats.totalDeductions)||0;
+    function netFor(factor){var sales=stats.totalSales+futureSales*factor,hours=stats.totalHours+futureHours*factor;return Math.round(fixedSalary+sales*commissionPct/100+hours*(Number(stats.hourlyRate)||0)+benefits+eligibleExpenses-deductions);}
+    var salesRows=(month.websiteSales||[]).length+(month.storeSales||[]).length,quality=elapsed>=15&&salesRows>=5&&stats.workDays>=8?'مناسب':elapsed>=7&&salesRows>=2&&stats.workDays>=3?'متوسط':'محدود';
+    return{projected:netFor(1),conservative:netFor(.8),optimistic:netFor(1.2),projectedSales:Math.round(projectedSales),projectedHours:Math.round(projectedHours*100)/100,projectedCommission:Math.round(projectedCommission),projectedHourlySalary:Math.round(projectedHourlySalary),fixedSalary:fixedSalary,benefits:benefits,eligibleExpenses:eligibleExpenses,deductions:deductions,salesToDate:stats.totalSales,salesPerCalendarDay:Math.round(salesPerCalendarDay),hoursToDate:stats.totalHours,hoursPerWorkDay:Math.round(hoursPerWorkDay*100)/100,futureWorkDays:futureWorkDays,remainingDays:remaining,elapsed:elapsed,days:days,commissionPct:commissionPct,hourlyRate:Number(stats.hourlyRate)||0,workDays:stats.workDays,salesRows:salesRows,quality:quality};
   }
   function renderDashboard() {
     var d = payrollData();
@@ -170,10 +161,11 @@
     var week = weeklyData();
     var max = Math.max(1, ...week.map(function (x) { return Math.max(x.sales, x.expenses); }));
     var f = forecast(d);
+    var quote = dailyQuote();
     var goals = Goals.load().filter(function (g) { return g.status === 'inprogress' || g.status === 'active'; });
     var rems = Reminders.load().filter(function (r) { return !r.completed; }).sort(function (a, b) { return new Date(a.dateTime || 0) - new Date(b.dateTime || 0); }).slice(0, 3);
     var root = el('mzn-page mzn-dashboard',
-      '<div class="mzn-welcome"><div><span class="mzn-eyebrow">MIZAN · PERSONAL FINANCE</span><h2>' + greeting() + '، ' + h((Auth.getUser() && (Auth.getUser().name || Auth.getUser().username)) || 'خوش آمدی') + '</h2><p>امروز ' + h(Jalali.faDigits(Jalali.fmt(t[0], t[1], t[2]))) + ' است؛ وضعیت مالی‌ات را یک‌جا ببین.</p></div><div class="mzn-date-chip">' + h(Jalali.MONTHS[t[1] - 1].fa + ' ' + Jalali.faDigits(t[0])) + '</div></div>' +
+      '<div class="mzn-welcome"><div><span class="mzn-eyebrow">MIZAN · PERSONAL FINANCE</span><h2>' + greeting() + '، ' + h((Auth.getUser() && (Auth.getUser().name || Auth.getUser().username)) || 'خوش آمدی') + '</h2><p>امروز ' + h(Jalali.faDigits(Jalali.fmt(t[0], t[1], t[2]))) + ' است؛ وضعیت مالی‌ات را یک‌جا ببین.</p><p class="mzn-daily-quote">' + h(quote) + '</p></div><div class="mzn-date-chip">' + h(Jalali.MONTHS[t[1] - 1].fa + ' ' + Jalali.faDigits(t[0])) + '</div></div>' +
       '<div class="mzn-hero-balance"><div class="mzn-hero-label">حقوق خالص این ماه</div><div class="mzn-hero-value">' + money(d.stats.netSalary) + '</div><div class="mzn-hero-foot"><span>حقوق ناخالص: ' + money(d.stats.grossSalary) + '</span><span>پورسانت: ' + money(d.stats.commission) + '</span></div><div class="mzn-orb mzn-orb-a"></div><div class="mzn-orb mzn-orb-b"></div></div>' +
       '<div class="mzn-grid">' +
       card('فروش این ماه', money(d.stats.totalSales), 'وب‌سایت و فروشگاه', Icons.bag, 'mzn-green') +
@@ -189,7 +181,7 @@
       }).join('') +
       '</div><div class="mzn-week-legend"><span><i class="mzn-dot-sale"></i>فروش</span><span><i class="mzn-dot-exp"></i>هزینه</span><strong>فروش: ' + money(week.reduce(function (a, x) { return a + x.sales; }, 0)) + '</strong></div></div>' +
       '<div class="mzn-grid mzn-grid-two">' +
-      '<div class="mzn-panel"><div class="mzn-panel-head"><div><h3>پیش‌بینی پایان ماه</h3><p>بر اساس روند ثبت‌های این ماه</p></div>' + Icons.trendingUp + '</div><strong class="mzn-forecast-value">' + money(f.projected) + '</strong><p class="mzn-muted">برآورد حقوق خالص · روز ' + f.elapsed.toLocaleString('fa-IR') + ' از ' + f.days.toLocaleString('fa-IR') + ' روز</p>' + (f.average != null ? '<p class="mzn-muted">میانگین ' + f.sample.toLocaleString('fa-IR') + ' ماه ثبت‌شده قبل: ' + money(f.average) + (f.lower != null ? ' · بازه تقریبی: ' + money(f.lower) + ' تا ' + money(f.upper) : '') + '</p>' : '<p class="mzn-muted">برای مقایسه تاریخی، اطلاعات ماه‌های بیشتری ثبت کن.</p>') + '</div>' +
+      '<div class="mzn-panel mzn-forecast-panel"><div class="mzn-panel-head"><div><h3>پیش‌بینی شفاف پایان ماه</h3><p>محاسبه از داده‌های واقعی ثبت‌شده؛ نه حدس قطعی</p></div>' + Icons.trendingUp + '</div><strong class="mzn-forecast-value">' + money(f.projected) + '</strong><p class="mzn-muted">حقوق خالص تخمینی · کیفیت داده: ' + h(f.quality) + ' · ' + f.elapsed.toLocaleString('fa-IR') + ' روز سپری‌شده از ' + f.days.toLocaleString('fa-IR') + ' روز</p><div class="mzn-forecast-scenarios"><span>محتاطانه <b>' + money(f.conservative) + '</b></span><span>مبنای فعلی <b>' + money(f.projected) + '</b></span><span>خوش‌بینانه <b>' + money(f.optimistic) + '</b></span></div><div class="mzn-forecast-breakdown"><div><span>فروش فعلی</span><b>' + money(f.salesToDate) + '</b></div><div><span>فروش پیش‌بینی‌شده</span><b>' + money(f.projectedSales) + '</b></div><div><span>ساعت فعلی کار</span><b>' + f.hoursToDate.toLocaleString('fa-IR') + ' ساعت</b></div><div><span>ساعت پیش‌بینی‌شده</span><b>' + f.projectedHours.toLocaleString('fa-IR') + ' ساعت</b></div><div><span>پورسانت تخمینی (' + f.commissionPct.toLocaleString('fa-IR') + '٪)</span><b>' + money(f.projectedCommission) + '</b></div><div><span>حقوق ساعتی تخمینی</span><b>' + money(f.projectedHourlySalary) + '</b></div><div><span>حقوق ثابت</span><b>' + money(f.fixedSalary) + '</b></div><div><span>مزایا و هزینه‌های قابل احتساب</span><b>' + money(f.benefits+f.eligibleExpenses) + '</b></div><div><span>کسورات ثبت‌شده</span><b>− ' + money(f.deductions) + '</b></div></div><p class="mzn-muted">روش محاسبه: فروش فعلی + میانگین فروش روزانه × ' + f.remainingDays.toLocaleString('fa-IR') + ' روز باقی‌مانده؛ ساعت فعلی + میانگین ساعت هر روز کاری × ' + f.futureWorkDays.toLocaleString('fa-IR') + ' روز کاری باقی‌مانده. پورسانت و حقوق ساعتی با نرخ‌های ثبت‌شده محاسبه شده‌اند.</p><div id="mzn-forecast-receivables" class="mzn-forecast-extra"><p class="mzn-muted">در حال بررسی مطالبات ثبت‌شده...</p></div></div>' +
       '<div class="mzn-panel"><div class="mzn-panel-head"><div><h3>هدف‌های فعال</h3><p>مانده تا رسیدن به هدف به‌صورت خودکار</p></div>' + Icons.target + '</div>' +
       (goals.length ? goals.slice(0, 3).map(function (g) {
         var target = num(g.targetAmount), saved = num(g.currentAmount), pct = target > 0 ? Math.min(100, saved / target * 100) : num(g.progress);
@@ -210,7 +202,17 @@
     root.querySelector('#mzn-go-assistant').onclick = function () { App.navigate('assistant'); };
     root.querySelectorAll('[data-week-date]').forEach(function (bar) { bar.addEventListener('click', function () { App.openDayDetail(bar.dataset.weekDate); }); });
     loadFinanceOverview(root);
+    loadForecastReceivables(root);
     return root;
+  }
+  function dailyQuote(){var q=['هر روزی که با نظم شروع شود، یک قدم به آرامش مالی نزدیک‌تری.','پیشرفت بزرگ از ثبت‌های کوچک و پیوسته ساخته می‌شود.','به عددها نگاه کن؛ آن‌ها مسیر بهتر شدن را نشان می‌دهند.','امروز را دقیق ثبت کن تا فردا را هوشمندانه‌تر بسازی.','ثبات در کارهای کوچک، نتیجه‌های بزرگ می‌سازد.','قرار نیست هر روز عالی باشی؛ کافی است هر روز کمی جلوتر بروی.','برنامه‌ریزی یعنی به آینده‌ات از امروز احترام بگذاری.','قدم‌های آرام اما پیوسته، از تصمیم‌های عجولانه قوی‌ترند.','هر ثبت دقیق، یک تصمیم بهتر در آینده است.','موفقیت مالی اتفاقی نیست؛ حاصل انتخاب‌های آگاهانه است.'];return q[Math.floor(Math.random()*q.length)];}
+  async function loadForecastReceivables(root){
+    var box=root.querySelector('#mzn-forecast-receivables');if(!box)return;
+    try{var s=await session();if(!box.isConnected)return;if(!s.user){box.innerHTML='<p class="mzn-muted">برای نمایش طلب‌های ثبت‌شده، ابتدا در بخش «امور مالی» وارد حساب مالی شو.</p>';return;}
+      var q=await s.client.from('receivables').select('person_name,amount,paid_amount,due_date').order('created_at',{ascending:false});if(q.error)throw q.error;
+      var rows=q.data||[],total=rows.reduce(function(a,x){return a+Math.max(0,num(x.amount)-num(x.paid_amount));},0),open=rows.filter(function(x){return num(x.amount)>num(x.paid_amount);});
+      box.innerHTML='<div class="mzn-forecast-receivable-total"><span>مطالبات باقی‌مانده از اشخاص / فروشگاه</span><b>'+money(total)+'</b></div>'+(open.length?open.slice(0,5).map(function(x){return '<div class="mzn-forecast-receivable-row"><span>'+h(x.person_name||'طلب ثبت‌شده')+'</span><b>'+money(Math.max(0,num(x.amount)-num(x.paid_amount)))+'</b></div>';}).join(''):'<p class="mzn-muted">طلب باز و ثبت‌شده‌ای در دیتابیس امور مالی وجود ندارد.</p>')+'<p class="mzn-muted">منبع: جدول مطالبات Supabase · مانده هر مورد = مبلغ کل − مبلغ پرداخت‌شده.</p>';
+    }catch(e){if(box.isConnected)box.innerHTML='<p class="mzn-muted">دریافت مطالبات انجام نشد: '+errorMsg(e)+'</p>';}
   }
   async function loadFinanceOverview(root) {
     var box = root.querySelector('#mzn-fin-overview');
@@ -511,21 +513,12 @@
     setTimeout(load, 0);
     async function checkDueNotifications() {
       if (!root.isConnected) { if (reminderTimer) clearInterval(reminderTimer); reminderTimer = null; return; }
-      if (!('Notification' in window) || Notification.permission !== 'granted') return;
       try {
         var s = await session(); if (!s.user) return;
-        function sendOnce(title, body, key) {
-          if (localStorage.getItem(key)) return;
-          var options = { body: body, tag: key, icon: './icon.svg', badge: './icon.svg' };
-          if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-            navigator.serviceWorker.ready.then(function (reg) { return reg.showNotification(title, options); })
-              .catch(function () { try { new Notification(title, options); } catch (e) {} });
-          } else { try { new Notification(title, options); } catch (e) {} }
-          localStorage.setItem(key, String(Date.now()));
-        }
         var now = Date.now(), from = new Date(now - 60000).toISOString(), to = new Date(now + 60000).toISOString();
         var due = await s.client.from('mizan_reminders').select('id,title,due_at').eq('completed', false).gte('due_at', from).lte('due_at', to);
-        if (!due.error) (due.data || []).forEach(function (x) { sendOnce('یادآوری میزان', x.title, 'mizan-notified-' + x.id); });
+        if (due.error) throw due.error;
+        await Promise.all((due.data || []).map(function (x) { return sendMizanNotification('یادآوری میزان', x.title, 'reminder:'+x.id, 'reminder', {reminder_id:x.id,due_at:x.due_at}); }));
       } catch (e) { console.warn('Reminder notification check failed', e); }
     }
     checkDueNotifications();
@@ -594,7 +587,7 @@
     if (/فروش/.test(q)) return 'فروش ثبت‌شده این ماه ' + money(s.totalSales) + ' است؛ فروش وب‌سایت ' + money(s.websiteSales) + ' و فروش فروشگاه ' + money(s.storeSales) + ' است.';
     if (/درآمد/.test(q)) return 'حقوق خالص محاسبه‌شده این ماه ' + money(s.netSalary) + ' و فروش ثبت‌شده ' + money(s.totalSales) + ' است. این دو عدد جدا از هم نمایش داده شده‌اند تا با هم اشتباه نشوند.';
     if (/هزینه|خرج/.test(q)) return 'هزینه‌های ثبت‌شده این ماه ' + money(s.totalExpenses) + ' و کسورات حقوق ' + money(s.totalDeductions) + ' است.';
-    if (/پیش.?بین|آینده|آخر ماه/.test(q)) return 'برآورد ساده حقوق خالص پایان ماه ' + money(f.projected) + ' است. این تخمین از مقدار ثبت‌شده تا امروز و تعداد روزهای ماه محاسبه شده؛ تضمین یا توصیه مالی نیست.';
+    if (/پیش.?بین|آینده|آخر ماه/.test(q)) return 'برآورد حقوق خالص پایان ماه ' + money(f.projected) + ' است. مبنا: فروش فعلی ' + money(f.salesToDate) + '، فروش پایان ماه ' + money(f.projectedSales) + '، ساعت فعلی ' + f.hoursToDate.toLocaleString('fa-IR') + '، ساعت تخمینی ' + f.projectedHours.toLocaleString('fa-IR') + '، پورسانت تخمینی ' + money(f.projectedCommission) + '، حقوق ساعتی ' + money(f.projectedHourlySalary) + '، حقوق ثابت ' + money(f.fixedSalary) + ' و کسورات ' + money(f.deductions) + '. کیفیت داده: ' + f.quality + '. مطالبات اشخاص/فروشگاه جداگانه از جدول مطالبات در کارت پیش‌بینی نمایش داده می‌شود. این عدد سناریوی محاسباتی است، نه تضمین آینده.';
     if (/هدف|پس.?انداز/.test(q)) {
       if (!goals.length) return 'هنوز هدفی ثبت نشده است. از بخش «بیشتر ← دستاوردها و اهداف» یک هدف با مبلغ کل و مبلغ پس‌انداز فعلی بساز.';
       return goals.map(function (g) { var target = num(g.targetAmount), saved = num(g.currentAmount); return g.title + ': ' + (target > 0 ? 'مانده ' + money(Math.max(0, target - saved)) + ' از ' + money(target) : num(g.progress) + ' درصد پیشرفت'); }).join('؛ ');
@@ -708,6 +701,7 @@
   }
   function installMotionStyles() {
     var css = '.mzn-modal-open .global-nav,.mzn-modal-open .mzn-assistant-widget{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transform:translateY(18px)!important;transition:opacity .18s ease,transform .18s ease,visibility .18s ease!important}.global-nav.nav-tabs{isolation:isolate}.global-nav .nav-tab{position:relative!important;overflow:hidden!important;transition:transform .24s cubic-bezier(.2,.75,.25,1),color .24s ease,background .24s ease,box-shadow .24s ease!important}.global-nav .nav-tab:active{transform:scale(.93)!important}.global-nav .nav-tab.active{transform:translateY(-2px)!important;box-shadow:0 8px 22px rgba(35,107,77,.25),inset 0 1px 0 rgba(255,255,255,.28)!important}.global-nav .nav-tab.active:after{content:"";position:absolute;bottom:3px;left:50%;width:15px;height:2px;border-radius:3px;background:rgba(255,255,255,.9);transform:translateX(-50%);animation:mznNavLine .3s ease both}.global-nav .nav-tab svg{transition:transform .28s cubic-bezier(.2,.8,.2,1)!important}.global-nav .nav-tab.active svg{transform:translateY(-1px) scale(1.08)}@keyframes mznNavLine{from{width:0;opacity:0}to{width:15px;opacity:1}}.mzn-assistant-widget{position:fixed;z-index:2147482500;right:17px;bottom:calc(102px + env(safe-area-inset-bottom));width:58px;height:58px;touch-action:none;user-select:none}.mzn-assistant-widget[style*="left"]{right:auto;bottom:auto}.mzn-assistant-fab{position:absolute;inset:0;width:100%;height:100%;border:1px solid rgba(255,255,255,.7);border-radius:21px;display:grid;place-items:center;color:#fff;background:linear-gradient(145deg,#236b4d,#8fb394);box-shadow:0 12px 30px rgba(35,107,77,.34),inset 0 1px 0 rgba(255,255,255,.35);animation:mznFabFloat 2.7s ease-in-out infinite;transition:transform .25s ease,box-shadow .25s ease}.mzn-assistant-fab>svg{width:26px;height:26px}.mzn-assistant-fab:active{transform:scale(.91)}.mzn-assistant-fab.is-open{animation:none;background:linear-gradient(145deg,#5c7961,#236b4d)}.mzn-fab-pulse{position:absolute;inset:-5px;border:1px solid rgba(95,157,111,.4);border-radius:24px;animation:mznFabPulse 2.2s ease-out infinite;pointer-events:none}.mzn-assistant-hide{position:absolute;z-index:3;top:-8px;right:-8px;width:21px;height:21px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#355b43;border:1px solid rgba(35,107,77,.22);box-shadow:0 2px 8px rgba(0,0,0,.18);font:700 15px/1 system-ui;cursor:pointer}.mzn-assistant-tip{position:absolute;z-index:2;right:0;bottom:calc(100% + 13px);max-width:min(245px,calc(100vw - 40px));padding:10px 13px;border:1px solid rgba(35,107,77,.16);border-radius:15px 15px 5px 15px;background:rgba(250,249,240,.94);color:#28583f;font:600 11px/1.8 system-ui,sans-serif;text-align:right;box-shadow:0 9px 24px rgba(30,65,42,.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);cursor:pointer;animation:mznTipFloat 3.2s ease-in-out infinite}.mzn-assistant-tip:after{content:"";position:absolute;right:22px;bottom:-6px;width:11px;height:11px;background:inherit;border-right:1px solid rgba(35,107,77,.16);border-bottom:1px solid rgba(35,107,77,.16);transform:rotate(45deg)}.mzn-assistant-tip[hidden]{display:none!important}.mzn-tip-in{animation:mznTipIn .35s cubic-bezier(.2,.8,.2,1) both}@keyframes mznFabFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-5px) rotate(-2deg)}}@keyframes mznFabPulse{0%{transform:scale(.9);opacity:.7}100%{transform:scale(1.32);opacity:0}}@keyframes mznTipFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}@keyframes mznTipIn{from{opacity:0;transform:translateY(7px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}@media(max-width:420px){.mzn-assistant-widget{width:54px;height:54px;right:13px;bottom:calc(100px + env(safe-area-inset-bottom))}.mzn-assistant-tip{font-size:10px}}@media(prefers-reduced-motion:reduce){.mzn-assistant-fab,.mzn-assistant-tip,.mzn-fab-pulse{animation:none!important}.global-nav .nav-tab{transition:none!important}}';
+    css += '.mzn-page{animation:mznPageIn .42s cubic-bezier(.2,.75,.25,1) both}.mzn-panel,.mzn-card,.mzn-hero-balance,.mzn-week-col,.mzn-list-row{animation:mznCardIn .48s cubic-bezier(.2,.75,.25,1) both}.mzn-panel:nth-child(2){animation-delay:.035s}.mzn-panel:nth-child(3){animation-delay:.07s}.mzn-panel:nth-child(4){animation-delay:.105s}.mzn-daily-quote{display:inline-block;margin-top:8px!important;padding:7px 11px;border:1px solid var(--bd);border-radius:12px;background:linear-gradient(110deg,var(--surf2),var(--surf));color:var(--pri)!important;font-weight:650;animation:mznQuoteIn .65s ease both}.mzn-forecast-scenarios{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:12px 0}.mzn-forecast-scenarios span{display:flex;flex-direction:column;gap:5px;padding:9px 7px;border:1px solid var(--bd);border-radius:12px;background:var(--surf2);font-size:9px;color:var(--txm)}.mzn-forecast-scenarios b{font-size:10px;color:var(--tx);overflow-wrap:anywhere}.mzn-forecast-breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:12px 0}.mzn-forecast-breakdown>div{display:flex;flex-direction:column;gap:4px;padding:9px;border-radius:11px;background:var(--surf2);border:1px solid var(--bd);min-width:0}.mzn-forecast-breakdown span,.mzn-forecast-receivable-row span,.mzn-forecast-receivable-total span{font-size:9px;color:var(--txm)}.mzn-forecast-breakdown b,.mzn-forecast-receivable-row b,.mzn-forecast-receivable-total b{font-size:11px;color:var(--tx);overflow-wrap:anywhere}.mzn-forecast-extra{padding-top:10px;border-top:1px solid var(--bd)}.mzn-forecast-receivable-total,.mzn-forecast-receivable-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--bd)}.mzn-page button,.fin-wrap button{transition:transform .22s cubic-bezier(.2,.75,.25,1),box-shadow .22s ease,background-color .22s ease,border-color .22s ease}.mzn-page button:active,.fin-wrap button:active{transform:scale(.96)}.mzn-page .btn:hover,.fin-wrap .btn:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(30,75,48,.13)}.mzn-assistant-widget,#mzn-assistant-widget{display:none!important}@keyframes mznPageIn{from{opacity:0;transform:translateY(12px) scale(.992);filter:blur(3px)}to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)}}@keyframes mznCardIn{from{opacity:0;transform:translateY(13px)}to{opacity:1;transform:translateY(0)}}@keyframes mznQuoteIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}@media(max-width:420px){.mzn-forecast-scenarios{gap:5px}.mzn-forecast-scenarios span{padding:7px 5px;font-size:8px}.mzn-forecast-breakdown{gap:6px}}@media(prefers-reduced-motion:reduce){.mzn-page,.mzn-panel,.mzn-card,.mzn-hero-balance,.mzn-week-col,.mzn-list-row,.mzn-daily-quote{animation:none!important}.mzn-page button,.fin-wrap button{transition:none!important}}';
     function addStyle(target, id) { if (!target || target.getElementById(id)) return; var style = target.createElement('style'); style.id = id; style.textContent = css; target.head.appendChild(style); }
     var parentDoc = document;
     try { if (window.parent && window.parent !== window) parentDoc = window.parent.document; } catch (e) {}
@@ -764,13 +758,14 @@
   var globalFinanceTimer=null;
   function tehranJalaliNow(){var parts=new Intl.DateTimeFormat('en-US-u-ca-persian',{timeZone:'Asia/Tehran',year:'numeric',month:'numeric',day:'numeric'}).formatToParts(new Date()),o={};parts.forEach(function(p){if(p.type!=='literal')o[p.type]=Number(p.value);});return{year:o.year,month:o.month,day:o.day};}
   function monthKey(y,m){return String(y)+'-'+String(m).padStart(2,'0');}
-  function sendMizanNotification(title,body,key){
-    try{if(localStorage.getItem(key))return false;}catch(e){}
-    var opts={body:body,tag:key,icon:'./icon.svg',badge:'./icon.svg',data:{url:'./'}};
-    if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(function(reg){return reg.showNotification(title,opts);}).catch(function(){try{if(window.Notification&&Notification.permission==='granted')new Notification(title,opts);}catch(e){}});}
-    else{try{if(window.Notification&&Notification.permission==='granted')new Notification(title,opts);}catch(e){}}
-    try{localStorage.setItem(key,String(Date.now()));}catch(e){}
-    return true;
+  async function sendMizanNotification(title,body,eventKey,type,metadata){
+    try{var s=await session();if(!s.user)return false;var row={user_id:s.user.id,title:title,body:body,notification_type:type||'general',event_key:eventKey,metadata:metadata||{}};
+      var saved=await s.client.from('mizan_notifications').upsert(row,{onConflict:'user_id,event_key',ignoreDuplicates:true}).select('id');if(saved.error)throw saved.error;
+      var created=!!(saved.data&&saved.data.length);
+      if(created&&window.Notification&&Notification.permission==='granted'){var opts={body:body,tag:eventKey,icon:'./icon.svg',badge:'./icon.svg',data:{url:'./'}};
+        if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(function(reg){return reg.showNotification(title,opts);}).catch(function(){try{new Notification(title,opts);}catch(e){}});}else{try{new Notification(title,opts);}catch(e){}}
+      }return true;
+    }catch(e){console.warn('Persist notification failed',e);return false;}
   }
   function monthlyReport(y,m){
     var rows=(Records.getAll()||[]).filter(function(r){return Number(r.year)===Number(y)&&Number(r.mi)===Number(m);}),t={sales:0,hours:0,commission:0,workDays:0,expenses:0,noMissing:false};
@@ -779,34 +774,27 @@
     var done=[];if(t.sales>=100000000)done.push('فروش ۱۰۰ میلیون');if(t.sales>=200000000)done.push('فروش ۲۰۰ میلیون');if(t.hours>=310)done.push('۳۱۰ ساعت کار');if(t.commission>=3000000)done.push('پورسانت ۳ میلیون');if(t.workDays>=26)done.push('۲۶ روز کاری');if(t.noMissing)done.push('حضور کامل');if(t.sales>=50000000&&t.workDays>=20)done.push('فروش مستمر');if(t.sales>=50000000&&t.expenses>0&&t.expenses<=t.sales*.30)done.push('مدیریت هزینه');
     return{totals:t,reached:done};
   }
-  function checkMonthlyClose(){
-    try{
-      var now=tehranJalaliNow(),current=monthKey(now.year,now.month),stored=localStorage.getItem('mizan-current-jalali-month');
+  async function checkMonthlyClose(){
+    try{var now=tehranJalaliNow(),current=monthKey(now.year,now.month),stored=localStorage.getItem('mizan-current-jalali-month');
       if(!stored)localStorage.setItem('mizan-current-jalali-month',current);
       else if(stored!==current){localStorage.setItem('mizan-pending-month-close',stored);localStorage.setItem('mizan-current-jalali-month',current);}
-      var clock=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Tehran',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()),hh=0,mm=0;
-      clock.forEach(function(p){if(p.type==='hour')hh=Number(p.value);if(p.type==='minute')mm=Number(p.value);});
-      if(now.day===Jalali.daysInMonth(now.year,now.month)&&hh===23&&mm>=0)localStorage.setItem('mizan-pending-month-close',current);
-      var pending=localStorage.getItem('mizan-pending-month-close');if(!pending||!window.Notification||Notification.permission!=='granted')return;
+      var clock=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Tehran',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()),hh=0;
+      clock.forEach(function(p){if(p.type==='hour')hh=Number(p.value);});
+      if(now.day===Jalali.daysInMonth(now.year,now.month)&&hh===23)localStorage.setItem('mizan-pending-month-close',current);
+      var pending=localStorage.getItem('mizan-pending-month-close');if(!pending)return;
       var b=pending.split('-'),y=Number(b[0]),m=Number(b[1]);if(!y||!m)return;
       var r=monthlyReport(y,m),name=(Jalali.MONTHS[m-1]&&Jalali.MONTHS[m-1].fa)||'این ماه';
       var body=r.reached.length?'به این هدف‌ها رسیدی: '+r.reached.join('، ')+'؛ فروش '+money(r.totals.sales)+'، کارکرد '+r.totals.hours.toLocaleString('fa-IR')+' ساعت.':'این ماه هنوز به هدف‌های تعیین‌شده نرسیدی؛ ماه بعد دوباره شروع می‌کنیم.';
-      if(sendMizanNotification('پرونده حقوقی '+name+' بسته شد',body,'mizan-month-close-sent-'+pending))localStorage.removeItem('mizan-pending-month-close');
+      if(await sendMizanNotification('پرونده حقوقی '+name+' بسته شد',body,'month-close:'+pending,'month_close',{month:pending,totals:r.totals,reached:r.reached}))localStorage.removeItem('mizan-pending-month-close');
     }catch(e){console.warn('Monthly close notification failed',e);}
   }
   async function checkGlobalFinanceDue(){
-    if(!window.Notification||Notification.permission!=='granted')return;
-    try{
-      var s=await session();if(!s.user)return;
-      var j=tehranJalaliNow(),jdate=Jalali.faDigits(Jalali.fmt(j.year,j.month,j.day)),todayISO=jToISO(jdate),fromISO=jToISO(jAddDays(jdate,-7));
-      var q=await Promise.all([
-        s.client.from('installments').select('id,plan_id,installment_number,amount,paid_amount,due_date').gte('due_date',fromISO).lte('due_date',todayISO),
-        s.client.from('installment_plans').select('id,title'),
-        s.client.from('personal_debt').select('id,creditor_name,amount,paid_amount,due_date').gte('due_date',fromISO).lte('due_date',todayISO)
-      ]);
-      q.forEach(function(x){if(x.error)throw x.error;});var now=Date.now();
-      (q[0].data||[]).forEach(function(x){if(!x.due_date||num(x.paid_amount)>=num(x.amount))return;var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;if(age<0||age>=7*86400000)return;var p=(q[1].data||[]).find(function(v){return v.id===x.plan_id;});sendMizanNotification('سررسید قسط '+x.installment_number+' · '+(p&&p.title||'برنامه اقساط'),'مانده قسط: '+money(Math.max(0,num(x.amount)-num(x.paid_amount))),'mizan-installment-notified:'+x.id+':'+x.due_date);});
-      (q[2].data||[]).forEach(function(x){if(!x.due_date||num(x.paid_amount)>=num(x.amount))return;var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;if(age<0||age>=7*86400000)return;sendMizanNotification('سررسید بدهی · '+(x.creditor_name||'بدهی ثبت‌شده'),'مانده بدهی: '+money(Math.max(0,num(x.amount)-num(x.paid_amount))),'mizan-debt-notified:'+x.id+':'+x.due_date);});
+    try{var s=await session();if(!s.user)return;var j=tehranJalaliNow(),jdate=Jalali.faDigits(Jalali.fmt(j.year,j.month,j.day)),todayISO=jToISO(jdate),fromISO=jToISO(jAddDays(jdate,-7));
+      var q=await Promise.all([s.client.from('installments').select('id,plan_id,installment_number,amount,paid_amount,due_date').gte('due_date',fromISO).lte('due_date',todayISO),s.client.from('installment_plans').select('id,title'),s.client.from('personal_debt').select('id,creditor_name,amount,paid_amount,due_date').gte('due_date',fromISO).lte('due_date',todayISO)]);
+      q.forEach(function(x){if(x.error)throw x.error;});var now=Date.now(),tasks=[];
+      (q[0].data||[]).forEach(function(x){if(!x.due_date||num(x.paid_amount)>=num(x.amount))return;var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;if(age<0||age>=7*86400000)return;var p=(q[1].data||[]).find(function(v){return v.id===x.plan_id;});tasks.push(sendMizanNotification('سررسید قسط '+x.installment_number+' · '+(p&&p.title||'برنامه اقساط'),'مانده قسط: '+money(Math.max(0,num(x.amount)-num(x.paid_amount))),'installment:'+x.id+':'+x.due_date,'installment',{installment_id:x.id,due_date:x.due_date,amount:x.amount,paid_amount:x.paid_amount}));});
+      (q[2].data||[]).forEach(function(x){if(!x.due_date||num(x.paid_amount)>=num(x.amount))return;var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;if(age<0||age>=7*86400000)return;tasks.push(sendMizanNotification('سررسید بدهی · '+(x.creditor_name||'بدهی ثبت‌شده'),'مانده بدهی: '+money(Math.max(0,num(x.amount)-num(x.paid_amount))),'debt:'+x.id+':'+x.due_date,'debt',{debt_id:x.id,due_date:x.due_date,amount:x.amount,paid_amount:x.paid_amount}));});
+      await Promise.all(tasks);
     }catch(e){console.warn('Global finance due check failed',e);}
   }
   function installMizanSchedulers(){
@@ -829,7 +817,7 @@
   };
   installGoalSync();
   installMotionStyles();
-  installAssistantFab();
+  document.querySelectorAll('#mzn-assistant-widget,.mzn-assistant-widget').forEach(function(x){x.remove();});
   installNavigation();
   document.addEventListener('DOMContentLoaded', function () { setTimeout(syncAllGoals, 1800); installMizanSchedulers(); });
   document.addEventListener('click', function (e) {
