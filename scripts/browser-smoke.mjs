@@ -123,8 +123,13 @@ try{
   }
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('achievements'));
   await appFrame.locator('#add-goal').click();
-  const navSuppressed=await appFrame.locator('#app').evaluate(()=>{const nav=window.parent.document.querySelector('.global-nav');return !!nav&&document.body.classList.contains('mzn-modal-open')&&window.parent.document.body.classList.contains('mzn-modal-open')&&window.parent.getComputedStyle(nav).pointerEvents==='none';});
-  if(!navSuppressed)throw new Error('Floating navigation should hide while a modal is open');
+  await appFrame.locator('#app').evaluate(()=>new Promise(resolve=>setTimeout(resolve,80)));
+  const navState=await appFrame.locator('#app').evaluate(()=>{
+    const nav=window.parent.document.querySelector('.global-nav');
+    return {guard:window.__mizanModalGuardInstalled,modal:!!document.querySelector('.modal-back'),iframeBody:document.body.className,parentBody:window.parent.document.body.className,navFound:!!nav,navPointer:nav?window.parent.getComputedStyle(nav).pointerEvents:'missing',modalApi:!!window.Modal,modalApiGuard:!!(window.Modal&&window.Modal.__mizanGuardInstalled)};
+  });
+  const navSuppressed=!!navState.navFound&&navState.iframeBody.includes('mzn-modal-open')&&navState.parentBody.includes('mzn-modal-open')&&navState.navPointer==='none';
+  if(!navSuppressed)throw new Error('Floating navigation should hide while a modal is open: '+JSON.stringify(navState));
   await appFrame.locator('#gf-t').fill('تست آفلاین هدف');
   await appFrame.locator('#gf-target').fill('100000');
   await appFrame.locator('#gf-current').fill('25000');
