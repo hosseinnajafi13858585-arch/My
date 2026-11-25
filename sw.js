@@ -4,10 +4,10 @@ const RUNTIME_CACHE='mizan-runtime-v48';
 const SHELL_FILES=[
   './index.html',
   './index-1.html',
-  './mizan-enhancements.js?v=30',
+  './mizan-enhancements.js?v=32',
   './manifest.webmanifest',
   './icon.svg',
-  './apple-touch-icon.png'
+  './icon.svg'
 ];
 const CDN_HOSTS=new Set(['cdn.jsdelivr.net','fonts.googleapis.com','fonts.gstatic.com']);
 const CRITICAL_CDN_FILES=['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'];
