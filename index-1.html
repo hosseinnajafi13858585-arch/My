@@ -1432,6 +1432,8 @@ var Modal=(function(){
     try{document.body.classList.toggle('mzn-modal-open',!!open);}catch(e){}
     try{if(window.parent&&window.parent!==window&&window.parent.document.body)window.parent.document.body.classList.toggle('mzn-modal-open',!!open);}catch(e){}
   }
+  window.__mizanModalLayerSyncInstalled=true;
+  window.addEventListener('pagehide',function(){syncParentModalLayer(false);});
   function close(){
     if(_cur){try{if(_cur.parentNode)_cur.parentNode.removeChild(_cur);}catch(e){}finally{_cur=null;document.body.style.overflow='';}}
     syncParentModalLayer(false);
