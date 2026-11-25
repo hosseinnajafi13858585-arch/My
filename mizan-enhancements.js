@@ -322,7 +322,7 @@
       button('mzn-market-refresh', 'به‌روزرسانی', Icons.refresh, 'btn btn-ghost')
     );
     var labels = {
-      USD_IRR_FREE:'دلار آمریکا', EUR_IRR_FREE:'یورو',
+      USD_IRR_FREE:'دلار آمریکا', EUR_IRR_FREE:'یورو', GBP_IRR_FREE:'پوند انگلیس',
       GOLD_18K_IRR:'طلای ۱۸ عیار · هر گرم', COIN_EMAMI_IRR:'سکه امامی',
       USDT_IRR:'تتر'
     };
@@ -365,7 +365,7 @@
     }
     root.querySelector('#mzn-market-refresh').onclick=refresh;
     refresh();
-    marketTimer=setInterval(function(){if(!root.isConnected){clearInterval(marketTimer);marketTimer=null;return;}refresh();},10*60*1000);
+    marketTimer=setInterval(function(){if(!root.isConnected){clearInterval(marketTimer);marketTimer=null;return;}refresh();},30*60*1000);
     return root;
   }
 
@@ -546,19 +546,6 @@
         var now = Date.now(), from = new Date(now - 60000).toISOString(), to = new Date(now + 60000).toISOString();
         var due = await s.client.from('mizan_reminders').select('id,title,due_at').eq('completed', false).gte('due_at', from).lte('due_at', to);
         if (!due.error) (due.data || []).forEach(function (x) { sendOnce('یادآوری میزان', x.title, 'mizan-notified-' + x.id); });
-        var tehran = tehranDateTimeParts(new Date());
-        if (tehran && Number(tehran.hour) >= 9) {
-          var todayISO = tehran.year + '-' + tehran.month + '-' + tehran.day;
-          var installmentsDue = await s.client.from('installments')
-            .select('id,installment_number,amount,paid_amount,due_date')
-            .eq('due_date', todayISO).is('paid_at', null);
-          if (!installmentsDue.error) (installmentsDue.data || []).forEach(function (x) {
-            var remaining = Math.max(0, num(x.amount) - num(x.paid_amount));
-            if (remaining <= 0) return;
-            var key = 'mizan-installment-notified-' + x.id + '-' + todayISO;
-            sendOnce('سررسید قسط در میزان', 'قسط ' + x.installment_number + ' امروز سررسید دارد. مانده قابل پرداخت: ' + money(remaining), key);
-          });
-        }
       } catch (e) { console.warn('Reminder notification check failed', e); }
     }
     checkDueNotifications();
