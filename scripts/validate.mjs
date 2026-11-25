@@ -52,7 +52,7 @@ assert.match(read('index.html'),/apple-mobile-web-app-capable/,'iOS web app meta
 assert.match(read('index-1.html'),/mizan-premium-motion-v1/,'App motion layer missing');
 assert.match(read('mizan-enhancements.js'),/mzn-modal-open/,'Modal must suppress parent floating navigation');
 assert.match(read('mizan-enhancements.js'),/new MutationObserver\(syncModalLayer\)/,'Modal navigation guard observer missing');
-assert.match(read('mizan-enhancements.js'),/modalApi\.open=function/,'Modal API wrapper must synchronously hide floating controls');
+assert.match(read('mizan-enhancements.js'),/modalApi\.open\\s*=\\s*function/,'Modal API wrapper must synchronously hide floating controls');
 assert.match(read('mizan-enhancements.js'),/function installModalLayerGuard\(\)/,'Modal guard must initialize independently');
 assert.match(read('mizan-enhancements.js'),/installModalLayerGuard\(\);/,'Modal guard init call missing');
 assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=19/,'Enhancement cache version mismatch');
