@@ -123,14 +123,14 @@ try{
   }
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('achievements'));
   await appFrame.locator('#add-goal').click();
-  const navSuppressed=await appFrame.locator('#app').evaluate(()=>document.body.classList.contains('mzn-modal-open')&&window.parent.document.body.classList.contains('mzn-modal-open')&&getComputedStyle(document.querySelector('.global-nav')).pointerEvents==='none');
+  const navSuppressed=await appFrame.locator('#app').evaluate(()=>document.body.classList.contains('mzn-modal-open')&&window.parent.document.body.classList.contains('mzn-modal-open')&&getComputedStyle(window.parent.document.querySelector('.global-nav')).pointerEvents==='none');
   if(!navSuppressed)throw new Error('Floating navigation should hide while a modal is open');
   await appFrame.locator('#gf-t').fill('تست آفلاین هدف');
   await appFrame.locator('#gf-target').fill('100000');
   await appFrame.locator('#gf-current').fill('25000');
   await appFrame.locator('#gf-sv').click();
   await appFrame.locator('#goal-list').getByText('تست آفلاین هدف').waitFor({state:'visible',timeout:10000});
-  const navRestored=await appFrame.locator('#app').evaluate(()=>!document.body.classList.contains('mzn-modal-open')&&!window.parent.document.body.classList.contains('mzn-modal-open')&&getComputedStyle(document.querySelector('.global-nav')).pointerEvents!=='none');
+  const navRestored=await appFrame.locator('#app').evaluate(()=>!document.body.classList.contains('mzn-modal-open')&&!window.parent.document.body.classList.contains('mzn-modal-open')&&getComputedStyle(window.parent.document.querySelector('.global-nav')).pointerEvents!=='none');
   if(!navRestored)throw new Error('Floating navigation did not return after modal close');
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('reminders'));
   await appFrame.locator('#add-rem').click();
@@ -145,8 +145,8 @@ try{
   await appFrame.locator('#stor-body').getByText('داده‌های محلی میزان',{exact:true}).waitFor({state:'visible',timeout:10000});
   await appFrame.locator('#stor-ref').click();
   await appFrame.locator('#stor-body').getByText('کش‌های برنامه',{exact:true}).waitFor({state:'visible',timeout:10000});
-  await appFrame.locator('.global-nav .nav-tab[data-page="more"]').click();
-  const moreActive=await appFrame.locator('.global-nav .nav-tab[data-page="more"]').getAttribute('class');
+  await page.locator('.global-nav .nav-tab[data-page="more"]').click();
+  const moreActive=await page.locator('.global-nav .nav-tab[data-page="more"]').getAttribute('class');
   if(!moreActive.includes('active'))throw new Error('Floating navigation did not switch pages');
   const themeBefore=await appFrame.locator('#app').evaluate(()=>document.documentElement.getAttribute('data-theme'));
   await appFrame.locator('#tb-theme').click();
