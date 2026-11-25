@@ -706,15 +706,25 @@
     UI.__mizanNavigationInstalled = true;
     var parentDoc=null;
     try{parentDoc=window.parent&&window.parent!==window?window.parent.document:null;}catch(e){}
-    if(parentDoc&&parentDoc.body&&document.body&&window.MutationObserver){
+    if(parentDoc&&parentDoc.body&&document.body){
       var syncModalLayer=function(){
         var open=!!document.querySelector('.modal-back');
         document.body.classList.toggle('mzn-modal-open',open);
         parentDoc.body.classList.toggle('mzn-modal-open',open);
       };
-      var modalObserver=new MutationObserver(syncModalLayer);
-      modalObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});
+      if(window.MutationObserver){
+        var modalObserver=new MutationObserver(syncModalLayer);
+        modalObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});
+      }
+      var modalApi=window.Modal;
+      if(modalApi&&!modalApi.__mizanGuardInstalled){
+        var originalModalOpen=modalApi.open,originalModalClose=modalApi.close;
+        modalApi.open=function(){var result=originalModalOpen.apply(this,arguments);syncModalLayer();return result;};
+        modalApi.close=function(){var result=originalModalClose.apply(this,arguments);syncModalLayer();return result;};
+        modalApi.__mizanGuardInstalled=true;
+      }
       syncModalLayer();
+      window.__mizanModalGuardInstalled=true;
       window.addEventListener('pagehide',function(){try{document.body.classList.remove('mzn-modal-open');parentDoc.body.classList.remove('mzn-modal-open');}catch(e){}});
     }
   }
