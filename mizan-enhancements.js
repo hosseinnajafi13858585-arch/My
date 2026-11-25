@@ -261,20 +261,23 @@
     }
   }
   function normalizeMarketPayload(payload) {
-    if (!payload || !Array.isArray(payload.data)) throw new Error('ساختار اطلاعات بازار معتبر نیست.');
+    if (!payload || !payload.data) throw new Error('ساختار اطلاعات بازار معتبر نیست.');
     var definitions = [
-      ['USD_IRR_FREE','usd','دلار آمریکا'],['EUR_IRR_FREE','eur','یورو'],['GBP_IRR_FREE','gbp','پوند انگلیس'],
+      ['USD_IRR_FREE','usd','دلار آمریکا'],['CAD_IRR_FREE','cad','دلار کانادا'],['EUR_IRR_FREE','eur','یورو'],['GBP_IRR_FREE','gbp','پوند انگلیس'],
       ['GOLD_18K_IRR','gold-18k','طلای ۱۸ عیار · هر گرم'],['COIN_EMAMI_IRR','coin-emami','سکه امامی'],['USDT_IRR','usdt','تتر']
     ];
+    var rows=Array.isArray(payload.data)?payload.data:[];
+    if(!rows.length&&payload.data&&payload.data.categories){rows=Object.keys(payload.data.categories).reduce(function(all,key){return all.concat(Array.isArray(payload.data.categories[key])?payload.data.categories[key]:[]);},[]);}
+    var published=(payload.meta&&payload.meta.published_at)||(payload.data&&payload.data.generated_at)||null;
     var out = [];
     definitions.forEach(function (def) {
-      var raw = payload.data.find(function (x) { return x && x.symbol === def[0]; });
+      var raw = rows.find(function (x) { return x && x.symbol === def[0]; });
       if (!raw || raw.price == null || !Number.isFinite(Number(raw.price)) || Number(raw.price) <= 0) return;
       var currency=String(raw.currency || payload.meta && payload.meta.currency || '').toUpperCase();
       var price=Number(raw.price);
       if(currency==='IRR')price=price/10;
       else if(currency!=='IRT'&&currency!=='TOMAN'&&currency!=='')return;
-      var stamp=raw.timestamp_tehran||raw.checked_at||raw.timestamp||(payload.meta&&payload.meta.published_at)||null;
+      var stamp=raw.timestamp_tehran||raw.timestamp||raw.checked_at||published||null;
       var stampMs=stamp?new Date(stamp).getTime():0;
       out.push({
         id:def[1],symbol:raw.symbol,name:raw.name_fa||def[2],price:price,currency:'IRT',
@@ -297,7 +300,7 @@
       button('mzn-market-refresh', 'به‌روزرسانی', Icons.refresh, 'btn btn-ghost')
     );
     var labels = {
-      usd:'دلار آمریکا', eur:'یورو', gbp:'پوند انگلیس',
+      usd:'دلار آمریکا', cad:'دلار کانادا', eur:'یورو', gbp:'پوند انگلیس',
       'gold-18k':'طلای ۱۸ عیار · هر گرم', 'coin-emami':'سکه امامی',
       usdt:'تتر'
     };
@@ -307,7 +310,8 @@
       grid.innerHTML=items.map(function(x){
         var pct=x.change_pct==null?'تغییر روزانه ثبت نشده':((x.change_pct>0?'+':'')+Number(x.change_pct).toLocaleString('fa-IR',{maximumFractionDigits:2})+'٪');
         var trend=x.change_pct>0?'up':x.change_pct<0?'down':'flat';
-        return '<article class="mzn-market-card"><div class="mzn-market-card-head"><span>'+h(labels[x.id]||x.name||x.id)+'</span><span class="mzn-trend '+trend+'">'+pct+'</span></div><strong>'+money(x.price)+'</strong><small>آخرین زمان ثبت: '+h(marketTime(x.updated_display||x.updated_utc||publishedAt))+'</small>'+(fromCache||x.stale?'<em class="mzn-stale">دادهٔ ذخیره‌شده یا قدیمی؛ برای تصمیم مالی دوباره بررسی کن.</em>':'<em class="mzn-fresh">آخرین دادهٔ دریافتی</em>')+'</article>';
+        var advice=x.stale||x.change_pct==null?{text:'داده کافی یا تازه برای ارزیابی وجود ندارد؛ فعلاً تصمیم نگیر.',cls:'stale'}:x.change_pct<=-1.5?{text:'افت روزانه؛ فقط بررسی خرید پله‌ای پس از بررسی روند بلندمدت.',cls:'buy'}:x.change_pct>=1.5?{text:'رشد روزانه؛ اگر از قبل داری، بررسی فروش بخشی و ذخیره سود.',cls:'sell'}:{text:'تغییر محدود؛ فعلاً صبر و نگهداری، بدون سیگنال قوی.',cls:'wait'};
+        return '<article class="mzn-market-card"><div class="mzn-market-card-head"><span>'+h(labels[x.id]||x.name||x.id)+'</span><span class="mzn-trend '+trend+'">'+pct+'</span></div><strong>'+money(x.price)+'</strong><small>آخرین به‌روزرسانی: '+h(marketTime(x.updated_display||x.updated_utc||publishedAt))+'</small><em class="mzn-market-advice '+advice.cls+'">'+advice.text+'</em>'+(fromCache||x.stale?'<em class="mzn-stale">دادهٔ ذخیره‌شده یا قدیمی است.</em>':'')+'</article>';
       }).join('');
       var time=marketTime(publishedAt||items[0].updated_utc);
       status.innerHTML=(fromCache?'<span class="mzn-error-dot"></span>':'<span class="mzn-live-dot"></span>')+(fromCache?'نمایش آخرین دادهٔ ذخیره‌شده':'داده‌ها با موفقیت دریافت شدند')+' · زمان انتشار: '+h(time);
@@ -317,8 +321,9 @@
       if(!status||!grid||!root.isConnected)return;
       status.textContent='در حال دریافت قیمت‌ها...';
       var urls=[
+        'https://raw.githubusercontent.com/iran-market/iran-market.github.io/main/data/latest-toman.json',
         'https://raw.githubusercontent.com/iran-market/iran-market.github.io/main/data/popular.json',
-        'https://cdn.jsdelivr.net/gh/iran-market/iran-market.github.io@main/data/popular.json'
+        'https://cdn.jsdelivr.net/gh/iran-market/iran-market.github.io@main/data/latest-toman.json'
       ],lastError=null;
       for(var n=0;n<urls.length;n++){
         try{
@@ -327,7 +332,7 @@
           var payload=await response.json(),items=normalizeMarketPayload(payload);
           marketCache=items;
           try{localStorage.setItem('mizan-market-cache-v2',JSON.stringify({items:items,publishedAt:payload.meta&&payload.meta.published_at,savedAt:new Date().toISOString()}));}catch(e){}
-          renderItems(items,false,payload.meta&&payload.meta.published_at);
+          renderItems(items,false,(payload.meta&&payload.meta.published_at)||(payload.data&&payload.data.generated_at));
           try{var s=await session();if(s.user)await saveMarketHistory(items,s.user,s.client);}catch(e){console.warn('market history save failed',e);}
           return;
         }catch(e){lastError=e;}
@@ -756,6 +761,61 @@
 
   }
 
+  var globalFinanceTimer=null;
+  function tehranJalaliNow(){var parts=new Intl.DateTimeFormat('en-US-u-ca-persian',{timeZone:'Asia/Tehran',year:'numeric',month:'numeric',day:'numeric'}).formatToParts(new Date()),o={};parts.forEach(function(p){if(p.type!=='literal')o[p.type]=Number(p.value);});return{year:o.year,month:o.month,day:o.day};}
+  function monthKey(y,m){return String(y)+'-'+String(m).padStart(2,'0');}
+  function sendMizanNotification(title,body,key){
+    try{if(localStorage.getItem(key))return false;}catch(e){}
+    var opts={body:body,tag:key,icon:'./icon.svg',badge:'./icon.svg',data:{url:'./'}};
+    if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(function(reg){return reg.showNotification(title,opts);}).catch(function(){try{if(window.Notification&&Notification.permission==='granted')new Notification(title,opts);}catch(e){}});}
+    else{try{if(window.Notification&&Notification.permission==='granted')new Notification(title,opts);}catch(e){}}
+    try{localStorage.setItem(key,String(Date.now()));}catch(e){}
+    return true;
+  }
+  function monthlyReport(y,m){
+    var rows=(Records.getAll()||[]).filter(function(r){return Number(r.year)===Number(y)&&Number(r.mi)===Number(m);}),t={sales:0,hours:0,commission:0,workDays:0,expenses:0,noMissing:false};
+    rows.forEach(function(r){var s=r.stats||{};t.sales+=Number(s.totalSales)||0;t.hours+=Number(s.totalHours)||0;t.commission+=Number(s.commission)||0;t.workDays+=Number(s.workDays)||0;t.expenses+=Number(s.totalExpenses)||0;});
+    t.noMissing=rows.length>0&&t.workDays>0&&rows.every(function(r){try{return Payroll.missingDays(r.data,r.year,r.mi).length===0;}catch(e){return false;}});
+    var done=[];if(t.sales>=100000000)done.push('فروش ۱۰۰ میلیون');if(t.sales>=200000000)done.push('فروش ۲۰۰ میلیون');if(t.hours>=310)done.push('۳۱۰ ساعت کار');if(t.commission>=3000000)done.push('پورسانت ۳ میلیون');if(t.workDays>=26)done.push('۲۶ روز کاری');if(t.noMissing)done.push('حضور کامل');if(t.sales>=50000000&&t.workDays>=20)done.push('فروش مستمر');if(t.sales>=50000000&&t.expenses>0&&t.expenses<=t.sales*.30)done.push('مدیریت هزینه');
+    return{totals:t,reached:done};
+  }
+  function checkMonthlyClose(){
+    try{
+      var now=tehranJalaliNow(),current=monthKey(now.year,now.month),stored=localStorage.getItem('mizan-current-jalali-month');
+      if(!stored)localStorage.setItem('mizan-current-jalali-month',current);
+      else if(stored!==current){localStorage.setItem('mizan-pending-month-close',stored);localStorage.setItem('mizan-current-jalali-month',current);}
+      var clock=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Tehran',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date()),hh=0,mm=0;
+      clock.forEach(function(p){if(p.type==='hour')hh=Number(p.value);if(p.type==='minute')mm=Number(p.value);});
+      if(now.day===Jalali.daysInMonth(now.year,now.month)&&hh===23&&mm>=0)localStorage.setItem('mizan-pending-month-close',current);
+      var pending=localStorage.getItem('mizan-pending-month-close');if(!pending||!window.Notification||Notification.permission!=='granted')return;
+      var b=pending.split('-'),y=Number(b[0]),m=Number(b[1]);if(!y||!m)return;
+      var r=monthlyReport(y,m),name=(Jalali.MONTHS[m-1]&&Jalali.MONTHS[m-1].fa)||'این ماه';
+      var body=r.reached.length?'به این هدف‌ها رسیدی: '+r.reached.join('، ')+'؛ فروش '+money(r.totals.sales)+'، کارکرد '+r.totals.hours.toLocaleString('fa-IR')+' ساعت.':'این ماه هنوز به هدف‌های تعیین‌شده نرسیدی؛ ماه بعد دوباره شروع می‌کنیم.';
+      if(sendMizanNotification('پرونده حقوقی '+name+' بسته شد',body,'mizan-month-close-sent-'+pending))localStorage.removeItem('mizan-pending-month-close');
+    }catch(e){console.warn('Monthly close notification failed',e);}
+  }
+  async function checkGlobalFinanceDue(){
+    if(!window.Notification||Notification.permission!=='granted')return;
+    try{
+      var s=await session();if(!s.user)return;
+      var j=tehranJalaliNow(),jdate=Jalali.faDigits(Jalali.fmt(j.year,j.month,j.day)),todayISO=jToISO(jdate),fromISO=jToISO(jAddDays(jdate,-7));
+      var q=await Promise.all([
+        s.client.from('installments').select('id,plan_id,installment_number,amount,paid_amount,due_date').gte('due_date',fromISO).lte('due_date',todayISO),
+        s.client.from('installment_plans').select('id,title'),
+        s.client.from('personal_debt').select('id,creditor_name,amount,paid_amount,due_date').gte('due_date',fromISO).lte('due_date',todayISO)
+      ]);
+      q.forEach(function(x){if(x.error)throw x.error;});var now=Date.now();
+      (q[0].data||[]).forEach(function(x){if(!x.due_date||num(x.paid_amount)>=num(x.amount))return;var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;if(age<0||age>=7*86400000)return;var p=(q[1].data||[]).find(function(v){return v.id===x.plan_id;});sendMizanNotification('سررسید قسط '+x.installment_number+' · '+(p&&p.title||'برنامه اقساط'),'مانده قسط: '+money(Math.max(0,num(x.amount)-num(x.paid_amount))),'mizan-installment-notified:'+x.id+':'+x.due_date);});
+      (q[2].data||[]).forEach(function(x){if(!x.due_date||num(x.paid_amount)>=num(x.amount))return;var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;if(age<0||age>=7*86400000)return;sendMizanNotification('سررسید بدهی · '+(x.creditor_name||'بدهی ثبت‌شده'),'مانده بدهی: '+money(Math.max(0,num(x.amount)-num(x.paid_amount))),'mizan-debt-notified:'+x.id+':'+x.due_date);});
+    }catch(e){console.warn('Global finance due check failed',e);}
+  }
+  function installMizanSchedulers(){
+    checkMonthlyClose();checkGlobalFinanceDue();if(globalFinanceTimer)clearInterval(globalFinanceTimer);
+    globalFinanceTimer=setInterval(function(){checkGlobalFinanceDue();checkMonthlyClose();},60000);
+    document.addEventListener('visibilitychange',function(){if(!document.hidden){checkGlobalFinanceDue();checkMonthlyClose();}});
+    setInterval(function(){try{var r=Achievements.checkAll();if(r.newOnes&&r.newOnes.length&&window.Toast)Toast.success('هدف ماهانه تکمیل شد: '+r.newOnes.map(function(x){return x.title;}).join('، '));}catch(e){}},60000);
+  }
+
   window.MizanEnhancements = {
     dashboard: renderDashboard,
     market: renderMarket,
@@ -771,7 +831,7 @@
   installMotionStyles();
   installAssistantFab();
   installNavigation();
-  document.addEventListener('DOMContentLoaded', function () { setTimeout(syncAllGoals, 1800); });
+  document.addEventListener('DOMContentLoaded', function () { setTimeout(syncAllGoals, 1800); installMizanSchedulers(); });
   document.addEventListener('click', function (e) {
     var nav = e.target && e.target.closest ? e.target.closest('.global-nav') : null;
     if (nav) nav.dataset.theme = Store.getTheme() || 'light';
