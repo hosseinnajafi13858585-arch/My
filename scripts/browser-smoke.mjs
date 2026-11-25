@@ -139,9 +139,17 @@ try{
   await appFrame.locator('#stor-body').getByText('داده‌های محلی میزان').waitFor({state:'visible',timeout:10000});
   await appFrame.locator('#stor-ref').click();
   await appFrame.locator('#stor-body').getByText('کش‌های برنامه').waitFor({state:'visible',timeout:10000});
+  await page.locator('.global-nav .nav-tab[data-page="more"]').click();
+  const moreActive=await page.locator('.global-nav .nav-tab[data-page="more"]').getAttribute('class');
+  if(!moreActive.includes('active'))throw new Error('Floating navigation did not switch pages');
+  const themeBefore=await appFrame.locator('#app').evaluate(()=>document.documentElement.getAttribute('data-theme'));
+  await appFrame.locator('#tb-theme').click();
+  const themeAfter=await appFrame.locator('#app').evaluate(()=>document.documentElement.getAttribute('data-theme'));
+  if(themeBefore===themeAfter)throw new Error('Theme toggle did not change the app theme');
+  await appFrame.locator('#tb-theme').click();
 
   if(pageErrors.length) throw new Error('Browser runtime errors: '+pageErrors.join(' | '));
-  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,missingSnapshotBlocked:true,authenticatedOfflineDashboard:true,pageSections,routeCount:routes.length,goalCreate:true,reminderTehranTime:true,storageMonitor:true,pageErrors},null,2));
+  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,missingSnapshotBlocked:true,authenticatedOfflineDashboard:true,pageSections,routeCount:routes.length,goalCreate:true,reminderTehranTime:true,storageMonitor:true,navInteraction:true,themeToggle:true,pageErrors},null,2));
 } finally {
   if(browser) await browser.close();
   await new Promise(resolve=>server.close(resolve));
