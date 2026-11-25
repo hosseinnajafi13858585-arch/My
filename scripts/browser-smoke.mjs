@@ -105,8 +105,8 @@ try{
   await appFrame.locator('#app').waitFor({state:'visible',timeout:20000});
   const offlineAppText=await appFrame.locator('#app').innerText();
   if(!offlineAppText.trim()) throw new Error('Authenticated offline app shell did not render');
-  const modalGuardInstalled=await appFrame.locator('#app').evaluate(()=>window.__mizanModalGuardInstalled===true);
-  if(!modalGuardInstalled)throw new Error('Modal overlay guard did not initialize');
+  const modalGuardInstalled=await appFrame.locator('#app').evaluate(()=>window.__mizanModalLayerSyncInstalled===true);
+  if(!modalGuardInstalled)throw new Error('Modal layer synchronization did not initialize');
   const appOverflow=await appFrame.locator('html').evaluate(el=>el.scrollWidth>window.innerWidth);
   if(appOverflow)throw new Error('Horizontal overflow in the authenticated app at iPhone width');
   const visibleButtons=await appFrame.locator('#app button').count();
