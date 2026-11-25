@@ -2235,7 +2235,7 @@ var Finance=(function(){
   function render(){var root=document.createElement('div');root.id='finance-root';root.innerHTML='<div class="fin-empty">در حال بررسی اتصال امن...</div>';setTimeout(async function(){try{await authState();draw(root);}catch(e){root.innerHTML='<div class="fin-empty">'+esc(e.message||'خطا در اتصال')+'</div>';}} ,0);return root;}
   function draw(root){if(!root||!root.isConnected)return;if(!user){root.innerHTML=authView();bindAuth(root);return;}root.innerHTML=shell();bindShell(root);load().then(function(){if(root.isConnected)paint(root);}).catch(function(e){var c=root.querySelector('#fin-content');if(c)c.innerHTML='<div class="fin-empty">خطا در دریافت اطلاعات: '+esc(e.message)+'</div>';});}
   function bindAuth(root){var msg=root.querySelector('#fin-auth-msg');async function act(signup){var email=root.querySelector('#fin-email').value.trim(),password=root.querySelector('#fin-password').value;if(!email||password.length<6){msg.textContent='ایمیل معتبر و رمز حداقل ۶ کاراکتری وارد کن.';return;}msg.textContent='در حال اتصال...';try{var c=initClient(),r=signup?await c.auth.signUp({email:email,password:password}):await c.auth.signInWithPassword({email:email,password:password});if(r.error)throw r.error;if(signup&&!r.data.session){msg.textContent='حساب ساخته شد. اگر تأیید ایمیل فعال باشد، ایمیلت را تأیید کن و سپس وارد شو.';return;}user=r.data.user;draw(root);}catch(e){msg.textContent=e.message||'ورود انجام نشد.';}}root.querySelector('#fin-login').onclick=function(){act(false);};root.querySelector('#fin-signup').onclick=function(){act(true);};}
-  function bindShell(root){root.querySelector('#fin-logout').onclick=async function(){await client.auth.signOut();user=null;draw(root);};root.querySelectorAll('[data-fin-tab]').forEach(function(b){b.onclick=function(){tab=b.dataset.finTab;root.querySelectorAll('[data-fin-tab]').forEach(function(x){x.classList.toggle('active',x===b);});paint(root);};});}
+  function bindShell(root){root.querySelector('#fin-logout').onclick=async function(){if(installmentNotificationTimer)clearInterval(installmentNotificationTimer);installmentNotificationTimer=null;await client.auth.signOut();user=null;data={receivables:[],debts:[],plans:[],installments:[]};draw(root);};root.querySelectorAll('[data-fin-tab]').forEach(function(b){b.onclick=function(){tab=b.dataset.finTab;root.querySelectorAll('[data-fin-tab]').forEach(function(x){x.classList.toggle('active',x===b);});paint(root);};});}
   async function q(table,opts){var orderColumn=table==='personal_debt'?'updated_at':'created_at';var r=await client.from(table).select(opts||'*').order(orderColumn,{ascending:false});if(r.error)throw r.error;return r.data||[];}
   async function load(){var vals=await Promise.all([q('receivables'),q('personal_debt'),q('installment_plans'),q('installments')]);data={receivables:vals[0],debts:vals[1],plans:vals[2],installments:vals[3]};data.installments.forEach(function(x){var p=data.plans.find(function(plan){return plan.id===x.plan_id;});if(p)syncInstallmentReminder(p,x);});scheduleInstallmentNotifications();}
   function sum(a,k){return a.reduce(function(t,x){return t+num(x[k]);},0);}
@@ -2292,7 +2292,7 @@ var Finance=(function(){
   }
   var installmentNotificationTimer=null;
   function checkInstallmentNotifications(){
-    if(!window.Notification||Notification.permission!=='granted')return;
+    if(!user||!window.Notification||Notification.permission!=='granted')return;
     var now=Date.now();
     data.installments.filter(function(x){return num(x.paid_amount)<num(x.amount);}).forEach(function(x){
       var plan=data.plans.find(function(p){return p.id===x.plan_id;});if(!plan)return;
@@ -2335,7 +2335,7 @@ var Finance=(function(){
           if(previousDate&&due<=previousDate)throw new Error('تاریخ هر قسط باید بعد از قسط قبلی باشد.');
           previousDate=due;sumAmount+=amount;rows.push({user_id:user.id,installment_number:n,amount:amount,due_date:due,paid_amount:0});
         }
-        if(sumAmount!==declaredTotal)throw new Error('جمع اقساط ('+money(sumAmount)+') باید دقیقاً برابر مبلغ کل ('+money(declaredTotal)+') باشد.');
+        if(Math.abs(sumAmount-declaredTotal)>0.01)throw new Error('جمع اقساط ('+money(sumAmount)+') باید دقیقاً برابر مبلغ کل ('+money(declaredTotal)+') باشد.');
         var permission=await requestInstallmentNotificationPermission();
         var p=await client.from('installment_plans').insert({user_id:user.id,title:v('ff-title'),person_name:v('ff-person'),total_amount:sumAmount,installment_count:count,record_date:todayDbDate(),description:v('ff-notes')}).select().single();
         if(p.error)throw p.error;
@@ -2363,10 +2363,24 @@ var Finance=(function(){
         var sumEl=m.querySelector('#fin-schedule-total');if(sumEl)sumEl.textContent='جمع اقساط: '+money(total);
       }
       function rebuild(){
-        var count=Math.max(1,Math.min(240,parseInt(m.querySelector('#ff-count').value,10)||1)),total=num(m.querySelector('#ff-amount').value);
+        var count=Math.max(1,Math.min(240,parseInt(m.querySelector('#ff-count').value,10)||1)),total=num(m.querySelector('#ff-amount').value),oldRows={};
+        for(var i=1;i<=240;i++){
+          var oldAmount=m.querySelector('#fip-amount-'+i),oldDate=m.querySelector('#fip-due-'+i+'-iso');
+          if(oldAmount||oldDate)oldRows[i]={amount:oldAmount?oldAmount.value:null,date:oldDate?oldDate.value:null};
+        }
         schedule.innerHTML=scheduleRowsHtml(count,total,todayDbDate());
         m.querySelectorAll('input[id^="fip-due-"][id$="-iso"]').forEach(function(x){x.remove();});
-        bindFinanceDates(m);updateSum();
+        bindFinanceDates(m);
+        for(var n=1;n<=count;n++){
+          var prior=oldRows[n],amountInput=m.querySelector('#fip-amount-'+n),dateInput=m.querySelector('#fip-due-'+n+'-iso'),dateButton=m.querySelector('#fip-due-'+n);
+          if(prior&&prior.amount!==null&&amountInput)amountInput.value=prior.amount;
+          if(prior&&prior.date&&dateInput&&dateButton){
+            dateInput.value=prior.date;
+            dateButton.textContent=Jalali.faDigits(dbDateToJalali(prior.date));
+            var wrap=m.querySelector('#dpw-fip-due-'+n);if(wrap)wrap.classList.add('hv');
+          }
+        }
+        updateSum();
       }
       m.querySelector('#ff-count').addEventListener('change',rebuild);
       m.querySelector('#ff-amount').addEventListener('change',rebuild);
