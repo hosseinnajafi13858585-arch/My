@@ -801,6 +801,7 @@ button>svg,.btn>svg,.rb>svg,.ib>svg,.nav-tab>svg,.sec-hd>svg,.settings-sec-hd>sv
 .mzn-market-advice{display:block;margin-top:7px;padding:6px 8px;border-radius:9px;background:var(--surf2);color:var(--txm);font-size:10px;line-height:1.7}
 .mzn-market-advice.buy{color:var(--ok);background:var(--oks)}.mzn-market-advice.sell{color:var(--warn);background:var(--warns)}.mzn-market-advice.wait{color:var(--txm)}.mzn-market-advice.stale{color:var(--err);background:var(--errs)}
 </style>
+<style id="mizan-login-loading-style">.auth-btn .login-loading-copy{display:flex;flex-direction:column;align-items:flex-start;gap:2px;line-height:1.35;text-align:right}.auth-btn .login-loading-copy b{font-size:12px}.auth-btn .login-loading-copy small{font-size:9px;font-weight:500;opacity:.88;white-space:normal}.fin-inbox-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 14px;color:var(--txm);font-size:11px}.fin-inbox-list{display:flex;flex-direction:column;gap:9px}.fin-inbox-item{display:flex;align-items:flex-start;gap:10px;padding:12px;border:1px solid var(--bd);border-radius:15px;background:var(--surf);transition:transform .2s ease,box-shadow .2s ease}.fin-inbox-item.is-unread{background:var(--pris);border-color:var(--pri)}.fin-inbox-dot{width:8px;height:8px;flex:0 0 8px;border-radius:50%;margin-top:6px;background:var(--pri)}.fin-inbox-item.is-read .fin-inbox-dot{background:var(--txm);opacity:.4}.fin-inbox-copy{min-width:0;flex:1}.fin-inbox-copy strong{display:block;font-size:12px;color:var(--tx)}.fin-inbox-copy p{font-size:11px;line-height:1.8;color:var(--txm);margin:4px 0}.fin-inbox-copy small,.fin-inbox-read-label{font-size:9px;color:var(--txm)}@media(max-width:420px){.fin-inbox-item{padding:10px;gap:7px}.fin-inbox-copy strong{font-size:11px}.fin-inbox-copy p{font-size:10px}}</style>
 </head>
 <body>
 <!-- Splash -->
@@ -1611,9 +1612,8 @@ function showAErr(el,msg,isWarn){
 }
 function clearAErr(el){if(el){el.textContent='';el.className='aerr';}}
 function setBtnLoading(btn,on,label){
-  if(!btn)return;
-  btn.disabled=on;
-  if(on){btn.innerHTML='<div class="spinner"></div><span>در حال ورود...</span>';}
+  if(!btn)return;btn.disabled=on;
+  if(on){var lines=['«با نظم امروز، آینده روشن‌تر می‌شود.»','«هر قدم دقیق، تو را به هدف نزدیک‌تر می‌کند.»','«امروز بساز؛ فردا نتیجه‌اش را ببین.»','«پشت هر پیشرفت بزرگ، استمرارهای کوچک است.»'];var line=lines[Math.floor(Math.random()*lines.length)];btn.innerHTML='<div class="spinner"></div><span class="login-loading-copy"><b>در حال ورود...</b><small>'+line+'</small></span>';}
   else{btn.innerHTML=(label||Icons.lock+'<span>ورود</span>');}
 }
 function authTransition(wrap,fn){
@@ -1716,7 +1716,7 @@ var AuthUI=(function(){
           setBtnLoading(btn,false);
           if(res.ok){handleLoginSuccess(username);}
           else{handleLoginFail(errEl,card,res.reason);}
-        },110);
+        },420);
       }
       if(btn)btn.addEventListener('click',doLogin);
       if(passEl)passEl.addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
@@ -2218,7 +2218,7 @@ var UI=(function(){
 var Finance=(function(){
   var URL='https://jrhihuaswonlcdkhoabf.supabase.co';
   var KEY='sb_publishable_48l_e94YWetezy99KDGqWQ_uGj7sf9i';
-  var client=null,user=null,tab='receivables',data={receivables:[],debts:[],plans:[],installments:[]},busy=false;
+  var client=null,user=null,tab='receivables',data={receivables:[],debts:[],plans:[],installments:[],notifications:[]},busy=false,notificationCheckBusy=false;
   function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});}
   function money(v){return Number(v||0).toLocaleString('fa-IR')+' تومان';}
   function dbDateToJalali(value){if(!value)return'';var m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})/);if(!m)return'';var j=Jalali.toJalali(+m[1],+m[2],+m[3]);return Jalali.faDigits(Jalali.fmt(j[0],j[1],j[2]));}
@@ -2243,20 +2243,29 @@ var Finance=(function(){
   function initClient(){if(!client){if(!window.supabase||!window.supabase.createClient)throw new Error('کتابخانه اتصال بارگذاری نشد؛ اینترنت را بررسی کنید.');client=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});}return client;}
   async function authState(){var c=initClient(),r=await c.auth.getSession();user=r.data&&r.data.session?r.data.session.user:null;return user;}
   function authView(){return '<div class="fin-auth"><div class="card"><h2>اتصال امن بخش مالی</h2><p class="fin-muted" style="margin-bottom:16px">برای نگهداری اطلاعات مالی در فضای اختصاصی خودت، با حساب Supabase وارد شو یا حساب بساز. این ورود از ورود فعلی سایت جداست.</p><div class="fin-form"><div class="field field-full"><label>ایمیل</label><input id="fin-email" type="email" autocomplete="email" placeholder="name@example.com"></div><div class="field field-full"><label>رمز عبور</label><input id="fin-password" type="password" autocomplete="current-password" placeholder="حداقل ۶ کاراکتر"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn btn-primary" id="fin-login">ورود</button><button class="btn btn-ghost" id="fin-signup">ساخت حساب جدید</button></div><div id="fin-auth-msg" class="fin-muted" style="margin-top:12px"></div></div></div>';}
-  function shell(){return '<div class="fin-wrap"><div class="sec-hd"><span class="dot"></span><span>مدیریت امور مالی</span><button class="btn btn-ghost btn-sm" id="fin-notify">اعلان اقساط و بدهی‌ها</button><button class="btn btn-ghost btn-sm" id="fin-logout">خروج مالی</button></div><div class="fin-grid" id="fin-summary"></div><div class="fin-tabs"><button class="fin-tab '+(tab==='receivables'?'active':'')+'" data-fin-tab="receivables">مطالبات</button><button class="fin-tab '+(tab==='debts'?'active':'')+'" data-fin-tab="debts">بدهی‌ها</button><button class="fin-tab '+(tab==='installments'?'active':'')+'" data-fin-tab="installments">اقساط</button></div><div id="fin-content"></div></div>';}
+  function shell(){return '<div class="fin-wrap"><div class="sec-hd"><span class="dot"></span><span>مدیریت امور مالی</span><button class="btn btn-ghost btn-sm" id="fin-notify">فعال‌سازی اعلان گوشی</button><button class="btn btn-ghost btn-sm" id="fin-logout">خروج مالی</button></div><div class="fin-grid" id="fin-summary"></div><div class="fin-tabs"><button class="fin-tab '+(tab==='receivables'?'active':'')+'" data-fin-tab="receivables">مطالبات</button><button class="fin-tab '+(tab==='debts'?'active':'')+'" data-fin-tab="debts">بدهی‌ها</button><button class="fin-tab '+(tab==='installments'?'active':'')+'" data-fin-tab="installments">اقساط</button><button class="fin-tab '+(tab==='notifications'?'active':'')+'" data-fin-tab="notifications">این‌باکس <span id="fin-inbox-count"></span></button></div><div id="fin-content"></div></div>';}
   function render(){var root=document.createElement('div');root.id='finance-root';root.innerHTML='<div class="fin-empty">در حال بررسی اتصال امن...</div>';setTimeout(async function(){try{await authState();draw(root);}catch(e){root.innerHTML='<div class="fin-empty">'+esc(e.message||'خطا در اتصال')+'</div>';}} ,0);return root;}
   function draw(root){if(!root||!root.isConnected)return;if(!user){root.innerHTML=authView();bindAuth(root);return;}root.innerHTML=shell();bindShell(root);load().then(function(){if(root.isConnected)paint(root);}).catch(function(e){var c=root.querySelector('#fin-content');if(c)c.innerHTML='<div class="fin-empty">خطا در دریافت اطلاعات: '+esc(e.message)+'</div>';});}
   function bindAuth(root){var msg=root.querySelector('#fin-auth-msg');async function act(signup){var email=root.querySelector('#fin-email').value.trim(),password=root.querySelector('#fin-password').value;if(!email||password.length<6){msg.textContent='ایمیل معتبر و رمز حداقل ۶ کاراکتری وارد کن.';return;}msg.textContent='در حال اتصال...';try{var c=initClient(),r=signup?await c.auth.signUp({email:email,password:password}):await c.auth.signInWithPassword({email:email,password:password});if(r.error)throw r.error;if(signup&&!r.data.session){msg.textContent='حساب ساخته شد. اگر تأیید ایمیل فعال باشد، ایمیلت را تأیید کن و سپس وارد شو.';return;}user=r.data.user;draw(root);}catch(e){msg.textContent=e.message||'ورود انجام نشد.';}}root.querySelector('#fin-login').onclick=function(){act(false);};root.querySelector('#fin-signup').onclick=function(){act(true);};}
-  function bindShell(root){root.querySelector('#fin-logout').onclick=async function(){if(installmentNotificationTimer)clearInterval(installmentNotificationTimer);installmentNotificationTimer=null;await client.auth.signOut();user=null;data={receivables:[],debts:[],plans:[],installments:[]};draw(root);};var notifyButton=root.querySelector('#fin-notify');if(notifyButton)notifyButton.onclick=async function(){var permission=await requestInstallmentNotificationPermission();if(permission==='granted'){scheduleInstallmentNotifications();if(window.Toast)Toast.success('اعلان سررسید اقساط فعال شد.');}else if(window.Toast)Toast.info('اجازه اعلان داده نشد؛ می‌توانی از تنظیمات مرورگر آن را فعال کنی.');};root.querySelectorAll('[data-fin-tab]').forEach(function(b){b.onclick=function(){tab=b.dataset.finTab;root.querySelectorAll('[data-fin-tab]').forEach(function(x){x.classList.toggle('active',x===b);});paint(root);};});}
+  function bindShell(root){root.querySelector('#fin-logout').onclick=async function(){if(installmentNotificationTimer)clearInterval(installmentNotificationTimer);installmentNotificationTimer=null;await client.auth.signOut();user=null;data={receivables:[],debts:[],plans:[],installments:[],notifications:[]};draw(root);};var notifyButton=root.querySelector('#fin-notify');if(notifyButton)notifyButton.onclick=async function(){var permission=await requestInstallmentNotificationPermission();if(permission==='granted'){scheduleInstallmentNotifications();if(window.Toast)Toast.success('اعلان‌های گوشی فعال شد؛ اعلان‌ها در این‌باکس هم ذخیره می‌شوند.');}else if(window.Toast)Toast.info('اجازه اعلان داده نشد؛ اعلان‌ها همچنان در این‌باکس ثبت می‌شوند.');};root.querySelectorAll('[data-fin-tab]').forEach(function(b){b.onclick=function(){tab=b.dataset.finTab;root.querySelectorAll('[data-fin-tab]').forEach(function(x){x.classList.toggle('active',x===b);});if(tab==='notifications')load().then(function(){if(root.isConnected)paint(root);});else paint(root);};});}
   async function q(table,opts){var orderColumn=table==='personal_debt'?'updated_at':'created_at';var r=await client.from(table).select(opts||'*').order(orderColumn,{ascending:false});if(r.error)throw r.error;return r.data||[];}
-  async function load(){var vals=await Promise.all([q('receivables'),q('personal_debt'),q('installment_plans'),q('installments')]);data={receivables:vals[0],debts:vals[1],plans:vals[2],installments:vals[3]};data.installments.forEach(function(x){var p=data.plans.find(function(plan){return plan.id===x.plan_id;});if(p)syncInstallmentReminder(p,x);});scheduleInstallmentNotifications();}
+  async function load(){var vals=await Promise.all([q('receivables'),q('personal_debt'),q('installment_plans'),q('installments'),q('mizan_notifications')]);data={receivables:vals[0],debts:vals[1],plans:vals[2],installments:vals[3],notifications:vals[4]};data.installments.forEach(function(x){var p=data.plans.find(function(plan){return plan.id===x.plan_id;});if(p)syncInstallmentReminder(p,x);});scheduleInstallmentNotifications();}
   function sum(a,k){return a.reduce(function(t,x){return t+num(x[k]);},0);}
   function paint(root){var r=data.receivables,d=data.debts,i=data.installments;var outstandingR=r.reduce(function(t,x){return t+Math.max(0,num(x.amount)-num(x.paid_amount));},0),outstandingD=d.reduce(function(t,x){return t+Math.max(0,num(x.amount)-num(x.paid_amount));},0),outstandingI=i.reduce(function(t,x){return t+Math.max(0,num(x.amount)-num(x.paid_amount));},0);root.querySelector('#fin-summary').innerHTML='<div class="fin-card"><div class="k">مطالبات باقی‌مانده</div><div class="v">'+money(outstandingR)+'</div></div><div class="fin-card"><div class="k">بدهی باقی‌مانده</div><div class="v">'+money(outstandingD)+'</div></div><div class="fin-card"><div class="k">اقساط باقی‌مانده</div><div class="v">'+money(outstandingI)+'</div></div><div class="fin-card"><div class="k">خالص وضعیت مالی</div><div class="v">'+money(outstandingR-outstandingD-outstandingI)+'</div></div>';
-    var c=root.querySelector('#fin-content');if(tab==='receivables')c.innerHTML=listHeader('ثبت طلب جدید','fin-add-rec')+listRows(r,'rec');else if(tab==='debts')c.innerHTML=listHeader('ثبت بدهی جدید','fin-add-debt')+listRows(d,'debt');else c.innerHTML=listHeader('ساخت برنامه اقساط','fin-add-plan')+planRows();bindContent(root);}
+    var c=root.querySelector('#fin-content'),unread=(data.notifications||[]).filter(function(x){return !x.read_at;}).length,badge=root.querySelector('#fin-inbox-count');if(badge)badge.textContent=unread?'('+unread.toLocaleString('fa-IR')+')':'';if(tab==='receivables')c.innerHTML=listHeader('ثبت طلب جدید','fin-add-rec')+listRows(r,'rec');else if(tab==='debts')c.innerHTML=listHeader('ثبت بدهی جدید','fin-add-debt')+listRows(d,'debt');else if(tab==='notifications')c.innerHTML=notificationRows(data.notifications||[]);else c.innerHTML=listHeader('ساخت برنامه اقساط','fin-add-plan')+planRows();bindContent(root);}
   function listHeader(label,id){return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px"><strong>'+label+'</strong><button class="btn btn-primary btn-sm" id="'+id+'">＋ ثبت مورد</button></div>';}
   function listRows(rows,type){if(!rows.length)return '<div class="fin-empty">هنوز موردی ثبت نشده است.</div>';return '<div class="fin-list">'+rows.map(function(x){var balance=Math.max(0,num(x.amount)-num(x.paid_amount)),name=type==='rec'?x.person_name:x.creditor_name;return '<div class="fin-row"><div><strong>'+esc(name||'بدون نام')+'</strong><div class="fin-muted">مبلغ: '+money(x.amount)+' · پرداخت‌شده: '+money(x.paid_amount)+' · مانده: <b>'+money(balance)+'</b></div><div class="fin-muted">'+'ثبت: '+esc(dbDateToJalali(x.record_date))+(x.due_date?' · سررسید: '+esc(dbDateToJalali(x.due_date)):'')+' · '+esc(x.notes||'')+'</div></div><div class="fin-actions"><button class="btn btn-primary btn-sm" data-pay="'+type+'" data-id="'+x.id+'">ثبت پرداخت</button><button class="btn btn-ghost btn-sm" data-history="'+type+'" data-id="'+x.id+'">سوابق</button><button class="btn btn-ghost btn-sm" data-edit="'+type+'" data-id="'+x.id+'">ویرایش</button><button class="btn btn-danger btn-sm" data-del="'+type+'" data-id="'+x.id+'">حذف</button></div></div>';}).join('')+'</div>';}
   function planRows(){if(!data.plans.length)return '<div class="fin-empty">هنوز برنامه اقساطی ثبت نشده است.</div>';return '<div class="fin-list">'+data.plans.map(function(p){var ins=data.installments.filter(function(x){return x.plan_id===p.id;}),left=ins.reduce(function(t,x){return t+Math.max(0,num(x.amount)-num(x.paid_amount));},0),paid=ins.filter(function(x){return num(x.paid_amount)>=num(x.amount);}).length,next=ins.filter(function(x){return num(x.paid_amount)<num(x.amount);}).sort(function(a,b){return String(a.due_date).localeCompare(String(b.due_date));})[0];return '<div class="fin-row"><div><strong>'+esc(p.title)+'</strong><div class="fin-muted">'+esc(p.person_name||'')+' · '+paid+' از '+ins.length+' قسط پرداخت شده · مانده '+money(left)+'</div><div class="fin-muted">کل: '+money(p.total_amount)+' · تاریخ ثبت: '+esc(dbDateToJalali(p.record_date))+' · '+esc(p.description||'')+'</div>'+(next?'<div class="fin-muted" style="margin-top:6px">قسط بعدی: '+esc(dbDateToJalali(next.due_date))+' · '+money(Math.max(0,num(next.amount)-num(next.paid_amount)))+'</div>':'<div class="fin-status">تمام اقساط تسویه شده</div>')+'</div><div class="fin-actions"><button class="btn btn-ghost btn-sm" data-plan="'+p.id+'">مشاهده اقساط</button><button class="btn btn-danger btn-sm" data-del="plan" data-id="'+p.id+'">حذف برنامه</button></div></div>';}).join('')+'</div>';}
-  function bindContent(root){var c=root.querySelector('#fin-content');['fin-add-rec','fin-add-debt','fin-add-plan'].forEach(function(id){var b=c.querySelector('#'+id);if(b)b.onclick=function(){openForm(id==='fin-add-rec'?'rec':id==='fin-add-debt'?'debt':'plan');};});c.querySelectorAll('[data-pay]').forEach(function(b){b.onclick=function(){pay(b.dataset.pay,b.dataset.id);};});c.querySelectorAll('[data-edit]').forEach(function(b){b.onclick=function(){var arr=b.dataset.edit==='rec'?data.receivables:data.debts;openForm(b.dataset.edit,arr.find(function(x){return x.id===b.dataset.id;}));};});c.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){remove(b.dataset.del,b.dataset.id);};});c.querySelectorAll('[data-plan]').forEach(function(b){b.onclick=function(){showPlan(b.dataset.plan);};});c.querySelectorAll('[data-history]').forEach(function(b){b.onclick=function(){showHistory(b.dataset.history,b.dataset.id);};});}
+  function notificationRows(rows){
+    if(!rows.length)return '<div class="fin-empty">هنوز اعلانی ثبت نشده است. سررسیدها و گزارش پایان ماه در این قسمت ذخیره می‌شوند.</div>';
+    var unread=rows.filter(function(x){return !x.read_at;}).length;
+    return '<div class="fin-inbox-toolbar"><span>'+unread.toLocaleString('fa-IR')+' اعلان خوانده‌نشده</span><button class="btn btn-ghost btn-sm" id="fin-notif-all">خواندن همه</button></div><div class="fin-inbox-list">'+rows.map(function(x){return '<article class="fin-inbox-item '+(x.read_at?'is-read':'is-unread')+'"><div class="fin-inbox-dot"></div><div class="fin-inbox-copy"><strong>'+esc(x.title)+'</strong><p>'+esc(x.body)+'</p><small>'+esc(new Date(x.created_at).toLocaleString('fa-IR-u-ca-persian'))+'</small></div>'+(!x.read_at?'<button class="btn btn-ghost btn-sm" data-notif-read="'+x.id+'">خواندم</button>':'<span class="fin-inbox-read-label">خوانده‌شده</span>')+'</article>';}).join('')+'</div>';
+  }
+  async function markNotificationRead(id){
+    var r=await client.from('mizan_notifications').update({read_at:new Date().toISOString()}).eq('id',id);
+    if(r.error)throw r.error;await load();var root=document.getElementById('finance-root');if(root)paint(root);
+  }
+  function bindContent(root){var c=root.querySelector('#fin-content');['fin-add-rec','fin-add-debt','fin-add-plan'].forEach(function(id){var b=c.querySelector('#'+id);if(b)b.onclick=function(){openForm(id==='fin-add-rec'?'rec':id==='fin-add-debt'?'debt':'plan');};});var all=c.querySelector('#fin-notif-all');if(all)all.onclick=async function(){var r=await client.from('mizan_notifications').update({read_at:new Date().toISOString()}).is('read_at',null);if(r.error)throw r.error;await load();paint(root);};c.querySelectorAll('[data-notif-read]').forEach(function(b){b.onclick=function(){markNotificationRead(b.dataset.notifRead).catch(function(e){alert(e.message||'اعلان خوانده نشد');});};});c.querySelectorAll('[data-pay]').forEach(function(b){b.onclick=function(){pay(b.dataset.pay,b.dataset.id);};});c.querySelectorAll('[data-edit]').forEach(function(b){b.onclick=function(){var arr=b.dataset.edit==='rec'?data.receivables:data.debts;openForm(b.dataset.edit,arr.find(function(x){return x.id===b.dataset.id;}));};});c.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){remove(b.dataset.del,b.dataset.id);};});c.querySelectorAll('[data-plan]').forEach(function(b){b.onclick=function(){showPlan(b.dataset.plan);};});c.querySelectorAll('[data-history]').forEach(function(b){b.onclick=function(){showHistory(b.dataset.history,b.dataset.id);};});}
   function modal(title,body,saveText,onSave){var old=document.getElementById('fin-modal');if(old)old.remove();var m=document.createElement('div');m.id='fin-modal';m.className='fin-modal';m.innerHTML='<div class="fin-modal-box"><div class="fin-modal-head"><strong>'+title+'</strong><button class="btn btn-ghost btn-sm" id="fin-x">✕</button></div>'+body+'<div class="fin-modal-foot"><button class="btn btn-ghost" id="fin-cancel">انصراف</button><button class="btn btn-primary" id="fin-save">'+saveText+'</button></div></div>';document.body.appendChild(m);bindFinanceDates(m);function close(){m.remove();}m.querySelector('#fin-x').onclick=close;m.querySelector('#fin-cancel').onclick=close;m.querySelector('#fin-save').onclick=async function(){var btn=this;btn.disabled=true;try{await onSave(m);close();await load();var root=document.getElementById('finance-root');if(root)paint(root);if(window.Toast)Toast.success('ذخیره شد');}catch(e){alert(e.message||'عملیات انجام نشد');btn.disabled=false;}};return m;}
   function field(label,id,type,val,full){if(type==='date')return makeDpf(id,dbDateToJalali(val),label);return '<div class="field '+(full?'field-full':'')+'"><label>'+label+'</label><input id="'+id+'" type="'+(type||'text')+'" value="'+esc(val||'')+'" '+(type==='number'?'min="0" step="1" inputmode="numeric"':'')+'></div>';}
   function bindScheduleDatePicker(root,id,dbDate){
@@ -2293,48 +2302,38 @@ var Finance=(function(){
     }catch(e){console.warn('installment reminder sync failed',e);}
   }
   function removeInstallmentReminder(id){try{if(typeof Reminders==='undefined')return;(Reminders.load()||[]).filter(function(r){return r.financeInstallmentId===id;}).forEach(function(r){Reminders.remove(r.id);});}catch(e){console.warn('installment reminder cleanup failed',e);}}
-  function notifyInstallmentDue(x,plan){
-    var key='mizan-installment-notified:'+x.id+':'+x.due_date;try{if(localStorage.getItem(key))return;}catch(e){}
-    var title='سررسید قسط '+x.installment_number+' · '+plan.title,body='مبلغ سررسید: '+money(Math.max(0,num(x.amount)-num(x.paid_amount)))+' · برای ثبت پرداخت وارد میزان شو.';
-    try{
-      if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(function(reg){if(reg&&reg.showNotification)return reg.showNotification(title,{body:body,tag:key,data:{url:'./'}});throw new Error('service worker unavailable');}).catch(function(){if(window.Notification&&Notification.permission==='granted')new Notification(title,{body:body,tag:key});});}
-      else if(window.Notification&&Notification.permission==='granted')new Notification(title,{body:body,tag:key});
-      try{localStorage.setItem(key,'1');}catch(e){}
-    }catch(e){console.warn('installment notification failed',e);}
+  async function createFinanceNotification(title,body,eventKey,type,metadata){
+    if(!user||!client)return false;
+    var row={user_id:user.id,title:title,body:body,notification_type:type,event_key:eventKey,metadata:metadata||{}};
+    var r=await client.from('mizan_notifications').upsert(row,{onConflict:'user_id,event_key',ignoreDuplicates:true}).select('id,created_at');
+    if(r.error)throw r.error;var created=!!(r.data&&r.data.length);
+    if(created){data.notifications.unshift({id:r.data[0].id,title:title,body:body,notification_type:type,event_key:eventKey,metadata:metadata||{},created_at:r.data[0].created_at||new Date().toISOString(),read_at:null});
+      if(window.Notification&&Notification.permission==='granted'){var opts={body:body,tag:eventKey,icon:'./icon.svg',badge:'./icon.svg',data:{url:'./'}};
+        if(navigator.serviceWorker&&navigator.serviceWorker.ready)navigator.serviceWorker.ready.then(function(reg){return reg.showNotification(title,opts);}).catch(function(){try{new Notification(title,opts);}catch(e){}});
+        else try{new Notification(title,opts);}catch(e){}
+      }
+    }return true;
   }
-  function notifyDebtDue(x){
-    var key='mizan-debt-notified:'+x.id+':'+x.due_date;
-    try{if(localStorage.getItem(key))return;}catch(e){}
-    var title='سررسید بدهی · '+(x.creditor_name||'بدهی ثبت‌شده');
-    var body='مانده بدهی: '+money(Math.max(0,num(x.amount)-num(x.paid_amount)))+' · برای ثبت پرداخت وارد میزان شو.';
-    try{
-      if(navigator.serviceWorker&&navigator.serviceWorker.ready){
-        navigator.serviceWorker.ready.then(function(reg){return reg.showNotification(title,{body:body,tag:key,icon:'./icon.svg',data:{url:'./'}});})
-          .catch(function(){if(window.Notification&&Notification.permission==='granted')new Notification(title,{body:body,tag:key});});
-      }else if(window.Notification&&Notification.permission==='granted')new Notification(title,{body:body,tag:key});
-      try{localStorage.setItem(key,'1');}catch(e){}
-    }catch(e){console.warn('debt notification failed',e);}
+  async function notifyInstallmentDue(x,plan){
+    var key='installment:'+x.id+':'+x.due_date,title='سررسید قسط '+x.installment_number+' · '+plan.title,body='مبلغ سررسید: '+money(Math.max(0,num(x.amount)-num(x.paid_amount)))+' · برای ثبت پرداخت وارد میزان شو.';
+    try{return await createFinanceNotification(title,body,key,'installment',{installment_id:x.id,due_date:x.due_date});}catch(e){console.warn('installment notification failed',e);return false;}
+  }
+  async function notifyDebtDue(x){
+    var key='debt:'+x.id+':'+x.due_date,title='سررسید بدهی · '+(x.creditor_name||'بدهی ثبت‌شده'),body='مانده بدهی: '+money(Math.max(0,num(x.amount)-num(x.paid_amount)))+' · برای ثبت پرداخت وارد میزان شو.';
+    try{return await createFinanceNotification(title,body,key,'debt',{debt_id:x.id,due_date:x.due_date});}catch(e){console.warn('debt notification failed',e);return false;}
   }
   var installmentNotificationTimer=null;
-  function checkInstallmentNotifications(){
-    if(!user||!window.Notification||Notification.permission!=='granted')return;
-    var now=Date.now();
-    data.installments.filter(function(x){return x.due_date&&num(x.paid_amount)<num(x.amount);}).forEach(function(x){
-      var plan=data.plans.find(function(p){return p.id===x.plan_id;});if(!plan)return;
-      var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;
-      if(age>=0&&age<7*24*60*60*1000)notifyInstallmentDue(x,plan);
-    });
-    data.debts.filter(function(x){return x.due_date&&num(x.paid_amount)<num(x.amount);}).forEach(function(x){
-      var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;
-      if(age>=0&&age<7*24*60*60*1000)notifyDebtDue(x);
-    });
+  async function checkInstallmentNotifications(){
+    if(!user||notificationCheckBusy)return;notificationCheckBusy=true;
+    try{var now=Date.now(),tasks=[];
+      data.installments.filter(function(x){return x.due_date&&num(x.paid_amount)<num(x.amount);}).forEach(function(x){var plan=data.plans.find(function(p){return p.id===x.plan_id;});if(!plan)return;var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;if(age>=0&&age<7*86400000)tasks.push(notifyInstallmentDue(x,plan));});
+      data.debts.filter(function(x){return x.due_date&&num(x.paid_amount)<num(x.amount);}).forEach(function(x){var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;if(age>=0&&age<7*86400000)tasks.push(notifyDebtDue(x));});
+      await Promise.all(tasks);
+    }finally{notificationCheckBusy=false;}
   }
   function scheduleInstallmentNotifications(){
-    if(installmentNotificationTimer)clearInterval(installmentNotificationTimer);
-    installmentNotificationTimer=null;
-    if(!window.Notification||Notification.permission!=='granted')return;
-    checkInstallmentNotifications();
-    installmentNotificationTimer=setInterval(checkInstallmentNotifications,60*1000);
+    if(installmentNotificationTimer)clearInterval(installmentNotificationTimer);installmentNotificationTimer=null;
+    if(!user)return;checkInstallmentNotifications();installmentNotificationTimer=setInterval(checkInstallmentNotifications,60000);
   }
   function openForm(type,rec){
     var isRec=type==='rec',isDebt=type==='debt',title=isRec?'ثبت طلب':isDebt?'ثبت بدهی':'ساخت برنامه اقساط';
@@ -2453,7 +2452,7 @@ var App=(function(){
       var pg=_renderPage();if(pg)content.appendChild(pg);
       main.appendChild(content);
       appEl.appendChild(main);
-      var footer=document.createElement('div');footer.className='footer no-print mizan-footer';footer.innerHTML='<span class="mizan-footer-brand" aria-label="نشان میزان"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H19a1 1 0 0 1 1 1v13H6a2 2 0 0 1-2-2V7.5Z"/><path d="M4 8h14.5A2.5 2.5 0 0 1 21 10.5V14h-5a2.5 2.5 0 0 1 0-5h4"/><path d="M16 11.5h.01"/></svg></span><span class="mizan-footer-meta">میزان · نسخه '+Store.VER+'</span>';
+      var footer=document.createElement('div');footer.className='footer no-print mizan-footer';footer.innerHTML='<span class="mizan-footer-brand" aria-label="نشان میزان"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H19a1 1 0 0 1 1 1v13H6a2 2 0 0 1-2-2V7.5Z"/><path d="M4 8h14.5A2.5 2.5 0 0 1 21 10.5V14h-5a2.5 2.5 0 0 1 0-5h4"/><path d="M16 11.5h.01"/></svg></span><span class="mizan-footer-meta">میزان · نسخه '+Store.VER+' · designed by hoseinnj</span>';
       appEl.appendChild(footer);
       var globalNav=UI.navTabs(_state.page);globalNav.classList.add('global-nav');globalNav.dataset.theme=Store.getTheme()||'light';
       try{
