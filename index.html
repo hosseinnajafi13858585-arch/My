@@ -109,6 +109,29 @@ input:focus{border-color:#4d8a68!important;box-shadow:0 0 0 4px rgba(66,130,89,.
 #appframe{width:100%;max-width:100%;min-width:0;min-height:0;display:block}
 @supports(padding:max(0px)){#workspace{padding-bottom:env(safe-area-inset-bottom)}}
 </style>
+<script>
+(function(){
+  function getParts(date,options){var out={};new Intl.DateTimeFormat('en-US',Object.assign({timeZone:'Asia/Tehran'},options)).formatToParts(date).forEach(function(p){if(p.type!=='literal')out[p.type]=p.value;});return out;}
+  function applySeason(){
+    var now=new Date(),g=getParts(now,{year:'numeric',month:'numeric',day:'numeric',hour:'numeric',hourCycle:'h23'}),m=Number(g.month),d=Number(g.day),hour=Number(g.hour),theme='';
+    if(m===12&&((d===24&&hour>=18)||d===25||d===26||(d===27&&hour<18)))theme='christmas';
+    try{var j=getParts(now,{calendar:'persian',year:'numeric',month:'numeric',day:'numeric'});if(Number(j.month)===1&&Number(j.day)>=1&&Number(j.day)<=10)theme='nowruz';}catch(e){}
+    document.documentElement.classList.remove('mzn-theme-christmas','mzn-theme-nowruz');
+    if(theme)document.documentElement.classList.add('mzn-theme-'+theme);
+    var meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=theme==='christmas'?'#173b32':theme==='nowruz'?'#2f8058':'#236b4d';
+  }
+  applySeason();window.setInterval(applySeason,60000);
+})();
+</script>
+<style>
+html.mzn-theme-christmas body{background:radial-gradient(ellipse at 12% 8%,rgba(181,47,60,.24),transparent 36%),radial-gradient(ellipse at 88% 90%,rgba(47,126,81,.3),transparent 38%),#10251d!important}
+html.mzn-theme-christmas .panel{border-color:rgba(192,76,78,.5)!important;box-shadow:0 24px 80px rgba(0,0,0,.42),0 0 32px rgba(161,53,58,.12)!important}
+html.mzn-theme-christmas .panel button{background:linear-gradient(120deg,#a33343,#28694a)!important}
+html.mzn-theme-nowruz body{background:radial-gradient(ellipse at 12% 8%,rgba(95,180,122,.23),transparent 36%),radial-gradient(ellipse at 88% 90%,rgba(238,203,126,.2),transparent 38%),#12251d!important}
+html.mzn-theme-nowruz .panel{border-color:rgba(113,177,125,.48)!important}
+html.mzn-theme-nowruz .panel button{background:linear-gradient(120deg,#2f8058,#9cb978)!important}
+</style>
+
 </head>
 <body>
 <div id="gate">
