@@ -73,9 +73,11 @@ assert.match(appHtml,/Reminders\.add\(payload\)/,'New installment must create an
 assert.match(appHtml,/requestInstallmentNotificationPermission/,'Installment notification permission flow missing');
 assert.match(appHtml,/checkInstallmentNotifications/,'Installment notification scheduler missing');
 assert.match(appHtml,/جمع اقساط/,'Installment total display missing');
+assert.match(appHtml,/oldRows\[n\]/,'Rebuilding installment count must preserve existing custom values');
 assert.match(enhancementHtml,/function normalizeMarketPayload\(payload\)/,'Market payload normalizer missing');
 assert.match(enhancementHtml,/USD_IRR_FREE/,'Market feed must map USD symbol');
 assert.match(enhancementHtml,/EUR_IRR_FREE/,'Market feed must map EUR symbol');
+assert.match(enhancementHtml,/GBP_IRR_FREE/,'Market feed must map GBP symbol');
 assert.match(enhancementHtml,/GOLD_18K_IRR/,'Market feed must map 18K gold symbol');
 assert.match(enhancementHtml,/COIN_EMAMI_IRR/,'Market feed must map Emami coin symbol');
 assert.match(enhancementHtml,/USDT_IRR/,'Market feed must map Tether symbol');
@@ -93,7 +95,7 @@ const marketFixture={meta:{published_at:'2026-11-25T08:00:00.000Z'},data:[
 ]};
 const normalized=new Function(marketHelpers+'return normalizeMarketPayload('+JSON.stringify(marketFixture)+');')();
 assert.equal(normalized.length,5);
-assert.equal(normalized[0].id,'USD_IRR_FREE');
+assert.equal(normalized[0].id,'usd');
 assert.equal(normalized[0].price,258465);
 assert.equal(normalized[0].currency,'IRT');
 assert.equal(normalized[2].price,26500000);
