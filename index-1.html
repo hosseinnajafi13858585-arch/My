@@ -2214,7 +2214,19 @@ var Finance=(function(){
   function todayDbDate(){var t=Jalali.today();return jalaliToDbDate(Jalali.fmt(t[0],t[1],t[2]));}
   function addMonthsDbDate(value,months){var m=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return todayDbDate();var j=Jalali.toJalali(+m[1],+m[2],+m[3]),serial=j[0]*12+(j[1]-1)+months,jy=Math.floor(serial/12),jm=(serial%12)+1,jd=Math.min(j[2],Jalali.daysInMonth(jy,jm));return jalaliToDbDate(Jalali.fmt(jy,jm,jd));}
   function readDateValue(root,id){var h=root.querySelector('#'+id+'-iso');if(h)return h.value;var e=root.querySelector('#'+id);return e?e.value:'';}
-  function bindFinanceDates(modalRoot){['ff-date','ff-due','fp-date','fip-date','fei-date'].forEach(function(id){var btn=modalRoot.querySelector('#'+id);if(!btn||btn.dataset.jalaliBound)return;btn.dataset.jalaliBound='1';var hidden=document.createElement('input');hidden.type='hidden';hidden.id=id+'-iso';hidden.value=jalaliToDbDate(btn.textContent.trim());modalRoot.appendChild(hidden);bindDp(id,btn.textContent.trim(),function(v){hidden.value=jalaliToDbDate(v);if(v)btn.textContent=Jalali.faDigits(v);hidden.dispatchEvent(new Event('change',{bubbles:true}));});});}
+  function bindFinanceDates(modalRoot){
+    var ids=['ff-date','ff-due','fp-date','fip-date','fei-date'];
+    modalRoot.querySelectorAll('button.dp-btn[id^="fip-due-"]').forEach(function(btn){ids.push(btn.id);});
+    ids.forEach(function(id){
+      var btn=modalRoot.querySelector('#'+id);
+      if(!btn||btn.dataset.jalaliBound)return;
+      btn.dataset.jalaliBound='1';
+      var hidden=modalRoot.querySelector('#'+id+'-iso');
+      if(!hidden){hidden=document.createElement('input');hidden.type='hidden';hidden.id=id+'-iso';modalRoot.appendChild(hidden);}
+      hidden.value=jalaliToDbDate(btn.textContent.trim());
+      bindDp(id,btn.textContent.trim(),function(v){hidden.value=jalaliToDbDate(v);if(v)btn.textContent=Jalali.faDigits(v);hidden.dispatchEvent(new Event('change',{bubbles:true}));});
+    });
+  }
   function num(v){return Math.max(0,Number(v)||0);}
   function initClient(){if(!client){if(!window.supabase||!window.supabase.createClient)throw new Error('کتابخانه اتصال بارگذاری نشد؛ اینترنت را بررسی کنید.');client=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});}return client;}
   async function authState(){var c=initClient(),r=await c.auth.getSession();user=r.data&&r.data.session?r.data.session.user:null;return user;}
@@ -2241,41 +2253,92 @@ var Finance=(function(){
     root.appendChild(hidden);btn.dataset.jalaliBound='1';
     bindDp(id,dbDateToJalali(dbDate),function(v){hidden.value=jalaliToDbDate(v);});
   }
+  function scheduleRowsHtml(count,total,firstDate){
+    var base=Math.floor(total/count),rem=total-base*count,html='';
+    for(var n=1;n<=count;n++){
+      var due=addMonthsDbDate(firstDate,n-1),id='fip-due-'+n;
+      html+='<div class="fin-schedule-row" style="border:1px solid var(--bd);border-radius:14px;padding:12px;margin:10px 0;background:var(--surf2)">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px"><strong>قسط '+n+'</strong><span class="fin-muted">مبلغ و تاریخ مستقل</span></div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end">'+
+          '<div class="field"><label>مبلغ این قسط (تومان)</label><input id="fip-amount-'+n+'" type="number" min="1" step="1" inputmode="numeric" value="'+(base+(n===count?rem:0))+'"></div>'+
+          '<div class="field"><label>تاریخ بازپرداخت</label><div class="dp-wrap hv" id="dpw-'+id+'"><button type="button" class="dp-btn" id="'+id+'">'+esc(dbDateToJalali(due))+'</button><span class="dp-btn-ico">'+(window.Icons?Icons.calendar:'')+'</span><button type="button" class="dp-clr" id="'+id+'-clr">'+(window.Icons?Icons.x:'×')+'</button></div></div>'+
+        '</div></div>';
+    }
+    return html;
+  }
+  function requestInstallmentNotificationPermission(){
+    try{var N=window.Notification;if(!N)return Promise.resolve('unsupported');if(N.permission==='granted')return Promise.resolve('granted');if(N.permission==='denied')return Promise.resolve('denied');if(typeof N.requestPermission==='function')return N.requestPermission().catch(function(){return'denied';});}catch(e){}
+    return Promise.resolve('unsupported');
+  }
+  function reminderDateTime(dueDate){return new Date(String(dueDate)+'T09:00:00+03:30').toISOString();}
+  function syncInstallmentReminder(plan,x){
+    try{
+      if(typeof Reminders==='undefined')return;
+      var list=Reminders.load()||[],existing=list.find(function(r){return r.financeInstallmentId===x.id;}),paid=num(x.paid_amount),remaining=Math.max(0,num(x.amount)-paid);
+      var payload={title:'سررسید قسط '+x.installment_number+' · '+(plan.title||'برنامه اقساط'),dateTime:reminderDateTime(x.due_date),repeat:'',completed:remaining<=0,notes:'مبلغ قسط: '+money(x.amount)+' · پرداخت‌شده: '+money(paid)+' · مانده: '+money(remaining),financeInstallmentId:x.id,financePlanId:plan.id,financeAmount:num(x.amount)};
+      if(existing)Reminders.update(existing.id,payload);else Reminders.add(payload);
+    }catch(e){console.warn('installment reminder sync failed',e);}
+  }
+  function removeInstallmentReminder(id){try{if(typeof Reminders==='undefined')return;(Reminders.load()||[]).filter(function(r){return r.financeInstallmentId===id;}).forEach(function(r){Reminders.remove(r.id);});}catch(e){console.warn('installment reminder cleanup failed',e);}}
+  function notifyInstallmentDue(x,plan){
+    var key='mizan-installment-notified:'+x.id+':'+x.due_date;try{if(localStorage.getItem(key))return;}catch(e){}
+    var title='سررسید قسط '+x.installment_number+' · '+plan.title,body='مبلغ سررسید: '+money(Math.max(0,num(x.amount)-num(x.paid_amount)))+' · برای ثبت پرداخت وارد میزان شو.';
+    try{
+      if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(function(reg){if(reg&&reg.showNotification)return reg.showNotification(title,{body:body,tag:key,data:{url:'./'}});throw new Error('service worker unavailable');}).catch(function(){if(window.Notification&&Notification.permission==='granted')new Notification(title,{body:body,tag:key});});}
+      else if(window.Notification&&Notification.permission==='granted')new Notification(title,{body:body,tag:key});
+      try{localStorage.setItem(key,'1');}catch(e){}
+    }catch(e){console.warn('installment notification failed',e);}
+  }
+  var installmentNotificationTimers=[];
+  function scheduleInstallmentNotifications(){
+    installmentNotificationTimers.forEach(function(t){clearTimeout(t);});installmentNotificationTimers=[];
+    if(!window.Notification||Notification.permission!=='granted')return;
+    var now=Date.now();
+    data.installments.filter(function(x){return num(x.paid_amount)<num(x.amount);}).forEach(function(x){
+      var plan=data.plans.find(function(p){return p.id===x.plan_id;});if(!plan)return;
+      var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),delay=due-now;
+      if(delay<=0&&delay>-24*60*60*1000){notifyInstallmentDue(x,plan);return;}
+      if(delay>0&&delay<2140000000)installmentNotificationTimers.push(setTimeout(function(){notifyInstallmentDue(x,plan);},delay));
+    });
+  }
   function openForm(type,rec){
     var isRec=type==='rec',isDebt=type==='debt',title=isRec?'ثبت طلب':isDebt?'ثبت بدهی':'ساخت برنامه اقساط';
-    var planBody=field('عنوان برنامه','ff-title','text',rec&&rec.title,true)+
-      field('نام شخص / فروشنده','ff-person','text',rec&&rec.person_name)+
-      field('مبلغ کل برنامه (تومان)','ff-amount','number',rec&&rec.total_amount)+
+    var body='<div class="fin-form">'+(type==='plan'?
+      field('عنوان برنامه','ff-title','text',rec&&rec.title,true)+
+      field('نام شخص / مؤسسه','ff-person','text',rec&&rec.person_name)+
+      field('مبلغ کل اقساط (تومان)','ff-amount','number',rec&&rec.total_amount)+
       field('تعداد اقساط','ff-count','number',rec&&rec.installment_count)+
-      field('تاریخ اولین قسط','ff-date','date',todayDbDate())+
-      '<div class="field field-full"><label>برنامه پرداخت هر قسط</label><div id="ff-schedule" class="fin-list"></div><small class="fin-muted">برای هر قسط می‌توانی تاریخ و مبلغ جداگانه تعیین کنی. مجموع مبالغ باید با مبلغ کل برابر باشد.</small></div>'+
-      field('توضیحات','ff-notes','text',rec&&rec.description,true);
-    var otherBody=field(isRec?'نام بدهکار':'نام طلبکار','ff-name','text',rec&&(isRec?rec.person_name:rec.creditor_name),true)+
-      field('مبلغ کل (تومان)','ff-amount','number',rec&&rec.amount)+field('مبلغ پرداخت‌شده','ff-paid','number',rec&&rec.paid_amount)+
-      field('تاریخ ثبت','ff-date','date',rec&&rec.record_date||todayDbDate())+field('سررسید','ff-due','date',rec&&rec.due_date)+
-      (isDebt?field('شماره کارت','ff-card','text',rec&&rec.card_number,true):'')+field('توضیحات','ff-notes','text',rec&&rec.notes,true);
-    var body='<div class="fin-form">'+(type==='plan'?planBody:otherBody)+'</div>';
-    var m=modal(title,body,rec?'به‌روزرسانی':'ذخیره',async function(modalRoot){
-      var v=function(id){return readDateValue(modalRoot,id)|| (modalRoot.querySelector('#'+id)?modalRoot.querySelector('#'+id).value:'');};
+      '<div class="field field-full"><label>برنامه بازپرداخت هر قسط</label><div id="fin-installment-schedule"></div><div id="fin-schedule-total" class="fin-muted" style="margin-top:8px">جمع اقساط: —</div><small class="fin-muted">تاریخ و مبلغ هر قسط را جداگانه تغییر بده؛ مجموع مبالغ باید با مبلغ کل برابر باشد.</small></div>'+
+      field('توضیحات','ff-notes','text',rec&&rec.description,true):
+      field(isRec?'نام بدهکار':'نام طلبکار','ff-name','text',rec&&(isRec?rec.person_name:rec.creditor_name),true)+
+      field('مبلغ کل (تومان)','ff-amount','number',rec&&rec.amount)+
+      field('مبلغ پرداخت‌شده','ff-paid','number',rec&&rec.paid_amount)+
+      field('تاریخ ثبت','ff-date','date',rec&&rec.record_date||todayDbDate())+
+      field('سررسید','ff-due','date',rec&&rec.due_date)+
+      (isDebt?field('شماره کارت','ff-card','text',rec&&rec.card_number,true):'')+
+      field('توضیحات','ff-notes','text',rec&&rec.notes,true))+'</div>';
+    modal(title,body,rec?'به‌روزرسانی':'ذخیره',async function(m){
+      var v=function(id){return m.querySelector('#'+id+'-iso')?readDateValue(m,id):(m.querySelector('#'+id)?m.querySelector('#'+id).value:'');};
       if(type==='plan'){
-        var total=num(v('ff-amount')),count=parseInt(v('ff-count'),10),first=v('ff-date');
-        if(!v('ff-title')||total<=0||!count||count<1||count>240)throw new Error('عنوان، مبلغ و تعداد اقساط را درست وارد کن.');
-        if(!first)throw new Error('تاریخ اولین قسط را انتخاب کن.');
-        var rows=[],sumAmount=0,dates={};
+        var count=parseInt(v('ff-count'),10),declaredTotal=num(v('ff-amount'));
+        if(!v('ff-title')||!declaredTotal||!count||count<1||count>240)throw new Error('عنوان، مبلغ کل و تعداد اقساط را درست وارد کن.');
+        var rows=[],sumAmount=0,previousDate='';
         for(var n=1;n<=count;n++){
-          var amount=num(modalRoot.querySelector('#ff-row-amount-'+n)&&modalRoot.querySelector('#ff-row-amount-'+n).value);
-          var due=readDateValue(modalRoot,'ff-row-date-'+n);
-          if(amount<=0||!due)throw new Error('مبلغ و تاریخ قسط '+n+' را کامل کن.');
-          if(dates[due])throw new Error('تاریخ قسط‌ها نباید تکراری باشد.');
-          dates[due]=true;sumAmount+=amount;
-          rows.push({installment_number:n,amount:amount,due_date:due});
+          var amount=num(m.querySelector('#fip-amount-'+n)&&m.querySelector('#fip-amount-'+n).value),due=v('fip-due-'+n);
+          if(!amount||!due)throw new Error('مبلغ و تاریخ قسط '+n+' را کامل وارد کن.');
+          if(previousDate&&due<=previousDate)throw new Error('تاریخ هر قسط باید بعد از قسط قبلی باشد.');
+          previousDate=due;sumAmount+=amount;rows.push({user_id:user.id,installment_number:n,amount:amount,due_date:due,paid_amount:0});
         }
-        if(Math.abs(sumAmount-total)>0.01)throw new Error('مجموع اقساط ('+money(sumAmount)+') باید دقیقاً با مبلغ کل ('+money(total)+') برابر باشد.');
-        var p=await client.from('installment_plans').insert({user_id:user.id,title:v('ff-title'),person_name:v('ff-person'),total_amount:total,installment_count:count,record_date:todayDbDate(),description:v('ff-notes')}).select().single();
+        if(sumAmount!==declaredTotal)throw new Error('جمع اقساط ('+money(sumAmount)+') باید دقیقاً برابر مبلغ کل ('+money(declaredTotal)+') باشد.');
+        var permission=await requestInstallmentNotificationPermission();
+        var p=await client.from('installment_plans').insert({user_id:user.id,title:v('ff-title'),person_name:v('ff-person'),total_amount:sumAmount,installment_count:count,record_date:todayDbDate(),description:v('ff-notes')}).select().single();
         if(p.error)throw p.error;
-        var dbRows=rows.map(function(x){return{user_id:user.id,plan_id:p.data.id,installment_number:x.installment_number,amount:x.amount,due_date:x.due_date};});
-        var ins=await client.from('installments').insert(dbRows);
+        rows=rows.map(function(x){x.plan_id=p.data.id;return x;});
+        var ins=await client.from('installments').insert(rows).select();
         if(ins.error){await client.from('installment_plans').delete().eq('id',p.data.id);throw ins.error;}
+        (ins.data||[]).forEach(function(x){syncInstallmentReminder(p.data,x);});
+        if(permission==='granted'){if(window.Toast)Toast.success('اعلان سررسید اقساط فعال شد.');}
+        else if(window.Toast)Toast.info('سررسیدها در بخش یادآوری‌ها ثبت شدند؛ برای اعلان گوشی، اجازه اعلان را فعال کن.');
         return;
       }
       var amount=num(v('ff-amount')),paid=num(v('ff-paid'));
@@ -2283,35 +2346,26 @@ var Finance=(function(){
       if(!v('ff-date'))throw new Error('تاریخ ثبت را انتخاب کن.');
       var payload={user_id:user.id,amount:amount,paid_amount:paid,record_date:v('ff-date')||todayDbDate(),due_date:v('ff-due')||null,notes:v('ff-notes')};
       if(isRec)payload.person_name=v('ff-name');else{payload.creditor_name=v('ff-name');payload.card_number=v('ff-card');payload.updated_at=new Date().toISOString();}
-      var table=isRec?'receivables':'personal_debt';
-      var res=rec?await client.from(table).update(payload).eq('id',rec.id):await client.from(table).insert(payload);
+      var table=isRec?'receivables':'personal_debt',res=rec?await client.from(table).update(payload).eq('id',rec.id):await client.from(table).insert(payload);
       if(res.error)throw res.error;
     });
-    if(type==='plan'&&m){
-      var schedule=m.querySelector('#ff-schedule'),countInput=m.querySelector('#ff-count'),totalInput=m.querySelector('#ff-amount');
-      function buildSchedule(resetAmounts,resetDates){
-        var count=Math.max(0,Math.min(240,parseInt(countInput.value,10)||0)),total=num(totalInput.value);
-        var first=readDateValue(m,'ff-date')||todayDbDate(),oldAmounts=[],oldDates=[];
-        for(var k=1;k<=240;k++){
-          var am=m.querySelector('#ff-row-amount-'+k),dt=m.querySelector('#ff-row-date-'+k+'-iso');
-          oldAmounts[k-1]=am?am.value:'';oldDates[k-1]=dt?dt.value:'';
-        }
-        var base=count?Math.floor(total/count):0,rem=count?total-base*count:0,html='';
-        for(var n=1;n<=count;n++){
-          var due=resetDates?addMonthsDbDate(first,n-1):(oldDates[n-1]||addMonthsDbDate(first,n-1));
-          var amount=resetAmounts?(base+(n===count?rem:0)):(oldAmounts[n-1]!==''?num(oldAmounts[n-1]):base+(n===count?rem:0));
-          html+='<div class="fin-row"><div style="width:100%"><strong>قسط '+n+'</strong><div class="fin-form" style="margin-top:8px">'+
-            '<div class="field"><label>مبلغ قسط (تومان)</label><input id="ff-row-amount-'+n+'" type="number" min="1" step="1" inputmode="numeric" value="'+amount+'"></div>'+
-            makeDpf('ff-row-date-'+n,dbDateToJalali(due),'تاریخ سررسید قسط '+n)+'</div></div></div>';
-        }
-        schedule.innerHTML=html||'<div class="fin-empty">تعداد اقساط را وارد کن تا برنامه پرداخت ساخته شود.</div>';
-        for(var j=1;j<=count;j++)bindScheduleDatePicker(m,'ff-row-date-'+j,resetDates?addMonthsDbDate(first,j-1):(oldDates[j-1]||addMonthsDbDate(first,j-1)));
+    if(type==='plan'){
+      var m=document.getElementById('fin-modal'),schedule=m.querySelector('#fin-installment-schedule');
+      function updateSum(){
+        var count=parseInt(m.querySelector('#ff-count').value,10)||0,total=0;
+        for(var n=1;n<=count;n++)total+=num(m.querySelector('#fip-amount-'+n)&&m.querySelector('#fip-amount-'+n).value);
+        var sumEl=m.querySelector('#fin-schedule-total');if(sumEl)sumEl.textContent='جمع اقساط: '+money(total);
       }
-      countInput.addEventListener('change',function(){buildSchedule(true,true);});
-      totalInput.addEventListener('change',function(){buildSchedule(true,true);});
-      var firstIso=m.querySelector('#ff-date-iso');
-      if(firstIso)firstIso.addEventListener('change',function(){buildSchedule(false,true);});
-      buildSchedule(true,true);
+      function rebuild(){
+        var count=Math.max(1,Math.min(240,parseInt(m.querySelector('#ff-count').value,10)||1)),total=num(m.querySelector('#ff-amount').value);
+        schedule.innerHTML=scheduleRowsHtml(count,total,todayDbDate());
+        m.querySelectorAll('input[id^="fip-due-"][id$="-iso"]').forEach(function(x){x.remove();});
+        bindFinanceDates(m);updateSum();
+      }
+      m.querySelector('#ff-count').addEventListener('change',rebuild);
+      m.querySelector('#ff-amount').addEventListener('change',rebuild);
+      schedule.addEventListener('input',function(e){if(e.target&&e.target.id.indexOf('fip-amount-')===0)updateSum();});
+      rebuild();
     }
   }
   async function pay(type,id){var arr=type==='rec'?data.receivables:data.debts,x=arr.find(function(z){return z.id===id;});if(!x)return;var rem=Math.max(0,num(x.amount)-num(x.paid_amount));if(!rem){alert('این مورد تسویه شده است.');return;}var body='<div class="fin-form">'+field('مبلغ پرداختی (تومان)','fp-amount','number',rem,true)+field('تاریخ پرداخت','fp-date','date',todayDbDate(),true)+field('توضیحات','fp-note','text','',true)+'</div>';modal('ثبت دریافت/پرداخت',body,'ثبت پرداخت',async function(m){var amount=num(m.querySelector('#fp-amount').value),paidAt=readDateValue(m,'fp-date');if(!amount||amount>rem)throw new Error('مبلغ باید بیشتر از صفر و حداکثر '+money(rem)+' باشد.');if(!paidAt)throw new Error('تاریخ پرداخت را انتخاب کن.');var table=type==='rec'?'receivable_payments':'debt_payments',fk=type==='rec'?'receivable_id':'debt_id',parent=type==='rec'?'receivables':'personal_debt';var ins=await client.from(table).insert({user_id:user.id,[fk]:id,amount:amount,paid_at:paidAt,note:m.querySelector('#fp-note').value});if(ins.error)throw ins.error;var parentPatch={paid_amount:num(x.paid_amount)+amount};if(type==='debt')parentPatch.updated_at=new Date().toISOString();var up=await client.from(parent).update(parentPatch).eq('id',id);if(up.error)throw up.error;});}
