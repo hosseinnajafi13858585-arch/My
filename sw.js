@@ -1,6 +1,6 @@
 'use strict';
-const SHELL_CACHE='mizan-shell-v45';
-const RUNTIME_CACHE='mizan-runtime-v45';
+const SHELL_CACHE='mizan-shell-v46';
+const RUNTIME_CACHE='mizan-runtime-v46';
 const SHELL_FILES=[
   './index.html',
   './index-1.html',
