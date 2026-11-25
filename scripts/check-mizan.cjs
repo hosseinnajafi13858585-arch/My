@@ -21,7 +21,7 @@ new vm.Script(sw,{filename:'sw.js'});
 if(!html.includes('viewport-fit=cover')||!entryHtml.includes('viewport-fit=cover'))throw Error('Missing mobile viewport');
 for(const page of ['compare','behavior','weather'])if(!html.includes("case'"+page+"'")||!ext.includes(page+': render'))throw Error('Missing route '+page);
 if(/function renderAssistant|function assistantReply|function forecast\(/.test(ext)||/case'assistant'|پیش‌بینی شفاف پایان ماه/.test(html))throw Error('Removed feature still referenced');
-if(!ext.includes('function weatherSeason')||!ext.includes('season-'+ 'weatherSeason(d.timezone)'))throw Error('Weather season mapping missing');
+if(!ext.includes('function weatherSeason')||!ext.includes('weatherSeason(d.timezone)'))throw Error('Weather season mapping missing');
 if(!entryHtml.includes('mzn-theme-christmas')||!entryHtml.includes('mzn-theme-nowruz'))throw Error('Login seasonal theme missing');
 for(const icon of manifest.icons||[])if(!fs.existsSync(icon.src.replace(/^\.\//,'')))throw Error('Missing manifest icon '+icon.src);
 const shell=(sw.match(/const SHELL_FILES=\[([\s\S]*?)\];/)||[])[1];
