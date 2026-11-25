@@ -709,12 +709,13 @@
     if(parentDoc&&parentDoc.body&&document.body&&window.MutationObserver){
       var syncModalLayer=function(){
         var open=!!document.querySelector('.modal-back');
+        document.body.classList.toggle('mzn-modal-open',open);
         parentDoc.body.classList.toggle('mzn-modal-open',open);
       };
       var modalObserver=new MutationObserver(syncModalLayer);
       modalObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});
       syncModalLayer();
-      window.addEventListener('pagehide',function(){try{parentDoc.body.classList.remove('mzn-modal-open');}catch(e){}});
+      window.addEventListener('pagehide',function(){try{document.body.classList.remove('mzn-modal-open');parentDoc.body.classList.remove('mzn-modal-open');}catch(e){}});
     }
   }
 
