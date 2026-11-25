@@ -776,6 +776,31 @@ table tbody tr:hover{background:var(--th,rgba(35,107,77,.05))}
 @media(hover:none){.card:hover,.stat-card:hover,.mzn-card:hover,.setting-card:hover,.settings-card:hover,.chart-card:hover,.summary-card:hover,.dash-card:hover,.finance-card:hover,.goal-card:hover,.rem-card:hover,.doc-card:hover,.section-card:hover,.panel-card:hover,.feature-card:hover,.widget-card:hover{transform:none;box-shadow:var(--shc)}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 </style>
+<style id="mizan-iphone-fixes">
+html,body,#app,.app-shell,#page-content,.main{width:100%;max-width:100%;min-width:0;overflow-x:hidden}
+body{min-height:100dvh;padding-bottom:env(safe-area-inset-bottom)}
+button>svg,.btn>svg,.rb>svg,.ib>svg,.nav-tab>svg,.sec-hd>svg,.settings-sec-hd>svg,.mzn-page button>svg,.mzn-card-top>span>svg,.mzn-more-item>span>svg{width:1.1rem!important;height:1.1rem!important;min-width:1.1rem!important;max-width:20px!important;max-height:20px!important;flex:0 0 auto}
+@media(max-width:640px){
+ .main{padding:12px 10px calc(104px + env(safe-area-inset-bottom))}
+ .topbar-in,.page-hd,.mzn-head,.mzn-panel-head{min-width:0;gap:8px;flex-wrap:wrap}
+ .card,.settings-section,.mzn-panel,.mzn-market-card,.fin-card,.fin-row,.goal-card{min-width:0;max-width:100%}
+ .mzn-grid,.mzn-market-grid,.mzn-grid-two,.mzn-grid-three{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .mzn-market-card{padding:10px}.mzn-market-card strong{font-size:clamp(14px,4vw,18px);overflow-wrap:anywhere}
+ .mzn-market-card small,.mzn-market-advice{overflow-wrap:anywhere;line-height:1.7}
+ .mzn-form-grid,.fin-form,.form-grid{grid-template-columns:minmax(0,1fr)!important}
+ .mzn-full,.field-full{grid-column:1/-1}
+ .fin-tabs{display:flex;gap:6px;overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+ .fin-tab{flex:1 0 auto;white-space:nowrap}.fin-actions{display:flex;flex-wrap:wrap;gap:6px}
+ .tbl-wrap,.table-wrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+ .modal-back{align-items:flex-end;padding:8px 8px max(8px,env(safe-area-inset-bottom))}
+ .modal{width:100%;max-width:100%;max-height:calc(100dvh - 18px);overflow:auto;border-radius:20px 20px 12px 12px}
+ .nav-tabs{padding-bottom:max(5px,env(safe-area-inset-bottom))}.nav-tab{min-width:0;flex:1}
+ input,select,textarea{font-size:16px;max-width:100%}
+}
+@media(max-width:380px){.mzn-grid,.mzn-market-grid,.mzn-grid-two,.mzn-grid-three,.dash-grid{grid-template-columns:minmax(0,1fr)!important}.nav-tab{padding:7px 5px}}
+.mzn-market-advice{display:block;margin-top:7px;padding:6px 8px;border-radius:9px;background:var(--surf2);color:var(--txm);font-size:10px;line-height:1.7}
+.mzn-market-advice.buy{color:var(--ok);background:var(--oks)}.mzn-market-advice.sell{color:var(--warn);background:var(--warns)}.mzn-market-advice.wait{color:var(--txm)}.mzn-market-advice.stale{color:var(--err);background:var(--errs)}
+</style>
 </head>
 <body>
 <!-- Splash -->
@@ -1376,37 +1401,24 @@ var Articles=(function(){
   return{load:load,add:add,update:update,remove:remove};
 })();
 var Achievements=(function(){
-  var N='achievements';
-  var DEFS=[
-    {id:'first_record',title:'اولین قدم',desc:'اولین ثبت کار',icon:'star',check:function(all){return all.length>=1;}},
-    {id:'seller_1m',title:'یک میلیونی',desc:'فروش بالای ۱M در یک ماه',icon:'trophy',check:function(all){return all.some(function(r){return r.stats.totalSales>=1000000;});}},
-    {id:'seller_10m',title:'ده میلیونی',desc:'فروش بالای ۱۰M در یک ماه',icon:'award',check:function(all){return all.some(function(r){return r.stats.totalSales>=10000000;});}},
-    {id:'hard_worker',title:'کارگر کوشا',desc:'بیش از ۲۰۰ ساعت در یک ماه',icon:'zap',check:function(all){return all.some(function(r){return r.stats.totalHours>=200;});}},
-    {id:'no_missing',title:'حضور کامل',desc:'یک ماه بدون غیبت',icon:'shield',check:function(all,ctx){return!!(ctx&&ctx.hasNoMissing);}},
-    {id:'streak_3m',title:'سه ماه پشت سر هم',desc:'ثبت در ۳ ماه متوالی',icon:'calendar',check:function(all){return all.length>=3;}},
-    {id:'commission_500k',title:'استاد پورسانت',desc:'پورسانت بالای ۵۰۰K',icon:'percent',check:function(all){return all.some(function(r){return r.stats.commission>=500000;});}},
-    {id:'goal_complete',title:'به هدف رسیدم',desc:'یک هدف را کامل کردید',icon:'target',check:function(all,ctx){return!!(ctx&&ctx.hasCompletedGoal);}}
-  ];
-  function getUnlocked(u){return LS.getJ(Store.auxKey(N,u),[]);}
-  function checkAll(u){
-    try{
-      var all=Records.getAll(u),unlocked=getUnlocked(u),goals=Goals.load(u);
-      var ctx={hasNoMissing:all.some(function(r){return Payroll.missingDays(r.data,r.year,r.mi).length===0&&r.stats.workDays>0;}),hasCompletedGoal:goals.some(function(g){return g.status==='completed';})};
-      var newOnes=[];
-      DEFS.forEach(function(def){if(unlocked.indexOf(def.id)<0&&def.check(all,ctx)){unlocked.push(def.id);newOnes.push(def);}});
-      if(newOnes.length)LS.setJ(Store.auxKey(N,u),unlocked);
-      return{unlocked:unlocked,newOnes:newOnes,defs:DEFS};
-    }catch(e){return{unlocked:[],newOnes:[],defs:DEFS};}
-  }
-  function getProgress(u){
-    try{
-      var all=Records.getAll(u),goals=Goals.load(u);
-      var ctx={hasNoMissing:all.some(function(r){return Payroll.missingDays(r.data,r.year,r.mi).length===0&&r.stats.workDays>0;}),hasCompletedGoal:goals.some(function(g){return g.status==='completed';})};
-      var unlocked=getUnlocked(u);
-      return DEFS.map(function(def){return Object.assign({},def,{unlocked:unlocked.indexOf(def.id)>=0||def.check(all,ctx)});});
-    }catch(e){return DEFS.map(function(def){return Object.assign({},def,{unlocked:false});});}
-  }
-  return{DEFS:DEFS,checkAll:checkAll,getProgress:getProgress,getUnlocked:getUnlocked};
+ var N='achievements';
+ var DEFS=[
+  {id:'seller_100m',title:'صد میلیونی',desc:'فروش ماهانه ۱۰۰ میلیون تومان',icon:'trophy',target:100000000,unit:'تومان',value:function(s){return s.sales;}},
+  {id:'seller_200m',title:'دویست میلیونی',desc:'فروش ماهانه ۲۰۰ میلیون تومان',icon:'award',target:200000000,unit:'تومان',value:function(s){return s.sales;}},
+  {id:'hard_worker',title:'کارگر کوشا',desc:'حداقل ۳۱۰ ساعت کار در ماه',icon:'zap',target:310,unit:'ساعت',value:function(s){return s.hours;}},
+  {id:'commission_3m',title:'استاد پورسانت',desc:'دریافت حداقل ۳ میلیون تومان پورسانت',icon:'percent',target:3000000,unit:'تومان',value:function(s){return s.commission;}},
+  {id:'attendance_26',title:'منظم و پرتلاش',desc:'ثبت حداقل ۲۶ روز کاری در ماه',icon:'calendar',target:26,unit:'روز',value:function(s){return s.workDays;}},
+  {id:'no_missing',title:'حضور کامل',desc:'یک ماه بدون روز کاریِ ثبت‌نشده',icon:'shield',target:1,unit:'تکمیل',value:function(s){return s.noMissing?1:0;}},
+  {id:'steady_sales',title:'فروش مستمر',desc:'حداقل ۵۰ میلیون فروش در ۲۰ روز کاری',icon:'trendingUp',target:50000000,unit:'تومان',value:function(s){return s.sales;}},
+  {id:'expense_control',title:'مدیریت هزینه',desc:'هزینه‌ها حداکثر ۳۰٪ فروش ماهانه باشد',icon:'wallet',target:30,unit:'٪',value:function(s){return s.sales>0&&s.expenses>0?Math.max(0,100-s.expenses/s.sales*100):0;}}
+ ];
+ function monthInfo(){var t=Jalali.today();return{year:+t[0],month:+t[1],key:String(t[0])+'-'+String(t[1]).padStart(2,'0')};}
+ function snapshot(u,m){m=m||monthInfo();var rows=(Records.getAll(u)||[]).filter(function(r){return +r.year===m.year&&+r.mi===m.month;}),o={rows:rows,sales:0,hours:0,commission:0,workDays:0,expenses:0,noMissing:false};rows.forEach(function(r){var x=r.stats||{};o.sales+=+x.totalSales||0;o.hours+=+x.totalHours||0;o.commission+=+x.commission||0;o.workDays+=+x.workDays||0;o.expenses+=+x.totalExpenses||0;});o.noMissing=rows.length>0&&o.workDays>0&&rows.every(function(r){try{return Payroll.missingDays(r.data,r.year,r.mi).length===0;}catch(e){return false;}});return o;}
+ function key(u,m){return Store.auxKey(N+'-'+(m||monthInfo().key),u);}
+ function getUnlocked(u,m){return LS.getJ(key(u,m),[]);}
+ function checkAll(u){try{var m=monthInfo(),s=snapshot(u,m),unlocked=getUnlocked(u,m.key),fresh=[];DEFS.forEach(function(d){var v=+d.value(s)||0,ok=d.id==='expense_control'?(s.sales>=50000000&&s.expenses>0&&s.expenses<=s.sales*.30):d.id==='steady_sales'?(s.sales>=50000000&&s.workDays>=20):v>=d.target;if(ok&&unlocked.indexOf(d.id)<0){unlocked.push(d.id);fresh.push(d);}});if(fresh.length)LS.setJ(key(u,m.key),unlocked);return{unlocked:unlocked,newOnes:fresh,defs:DEFS,month:m.key};}catch(e){console.warn('Monthly goals check failed',e);return{unlocked:[],newOnes:[],defs:DEFS,month:monthInfo().key};}}
+ function getProgress(u){try{var m=monthInfo(),s=snapshot(u,m),state=checkAll(u);return DEFS.map(function(d){var v=+d.value(s)||0,p=d.id==='expense_control'?(s.sales>=50000000&&s.expenses>0?Math.min(100,Math.max(0,100-s.expenses/s.sales*100)):0):d.id==='steady_sales'?(s.workDays>=20?Math.min(100,s.sales/50000000*100):Math.min(99,s.workDays/20*100)):Math.min(100,Math.max(0,d.target>0?v/d.target*100:0));var cur=d.unit==='تومان'?Math.round(v).toLocaleString('fa-IR'):v.toLocaleString('fa-IR',{maximumFractionDigits:1});return Object.assign({},d,{unlocked:state.unlocked.indexOf(d.id)>=0,progress:p,currentLabel:cur+' / '+d.target.toLocaleString('fa-IR')+' '+d.unit});});}catch(e){return DEFS.map(function(d){return Object.assign({},d,{unlocked:false,progress:0,currentLabel:'—'});});}}
+ return{DEFS:DEFS,checkAll:checkAll,getProgress:getProgress,getUnlocked:getUnlocked,monthInfo:monthInfo,snapshot:snapshot};
 })();
 </script>
 <script>
@@ -2029,7 +2041,7 @@ var UI=(function(){
   function renderAchievements(){
     var frag=document.createDocumentFragment();var hd=document.createElement('div');hd.className='page-hd';hd.innerHTML='<div><h2>دستاوردها و اهداف</h2></div><button class="btn btn-primary" id="add-goal">'+Icons.plus+'<span>هدف جدید</span></button>';frag.appendChild(hd);
     var prog=Achievements.getProgress(),ucnt=prog.filter(function(a){return a.unlocked;}).length;
-    var achSec=document.createElement('div');achSec.className='card card-pad';achSec.style.marginBottom='var(--sp3)';achSec.innerHTML='<div class="sec-hd"><span class="dot"></span>'+Icons.award+'<span>دستاوردها</span><span class="cnt">'+ucnt+'/'+prog.length+'</span></div><div class="ach-grid stagger">'+prog.map(function(a){return'<div class="ach-badge '+(a.unlocked?'unlocked':'locked')+'"><div class="ab-ico">'+(Icons[a.icon]||Icons.star)+'</div><div class="ab-title">'+a.title+'</div><div class="ab-desc">'+a.desc+'</div></div>';}).join('')+'</div>';frag.appendChild(achSec);
+    var achSec=document.createElement('div');achSec.className='card card-pad';achSec.style.marginBottom='var(--sp3)';achSec.innerHTML='<div class="sec-hd"><span class="dot"></span>'+Icons.award+'<span>دستاوردها</span><span class="cnt">'+ucnt+'/'+prog.length+'</span></div><div class="ach-grid stagger">'+prog.map(function(a){return'<div class="ach-badge '+(a.unlocked?'unlocked':'locked')+'"><div class="ab-ico">'+(Icons[a.icon]||Icons.star)+'</div><div class="ab-title">'+a.title+'</div><div class="ab-desc">'+a.desc+'</div><div class="ab-desc">'+(a.currentLabel||'')+'</div><div class="progress-bar" style="height:4px;margin-top:5px"><div class="pb-fill" style="width:'+(a.progress||0)+'%"></div></div></div>';}).join('')+'</div>';frag.appendChild(achSec);
     var goals=Goals.load();var goalSec=document.createElement('div');goalSec.className='card card-pad';goalSec.innerHTML='<div class="sec-hd"><span class="dot"></span>'+Icons.target+'<span>اهداف</span><span class="cnt">'+goals.length+'</span></div><div id="goal-list"></div>';frag.appendChild(goalSec);
     function renderGoals(){try{var gl=document.getElementById('goal-list');if(!gl)return;if(!goals.length){gl.innerHTML='<div class="empty">'+Icons.flag+'<p>هدفی ثبت نشده</p></div>';return;}gl.innerHTML=goals.map(function(g){var target=Number(g.targetAmount)||0,saved=Number(g.currentAmount)||0,p=target>0?Math.min(100,Math.max(0,saved/target*100)):Math.min(100,Math.max(0,g.progress||0)),stC=g.status==='completed'?'completed':g.status==='stopped'?'stopped':'inprogress',stL=g.status==='completed'?'تکمیل شده':g.status==='stopped'?'متوقف شده':'در حال انجام';return'<div class="goal-card"><div class="gc-top"><div class="gc-title">'+escH(g.title||'')+'</div><span class="goal-status '+stC+'">'+stL+'</span></div>'+(g.description?'<div class="gc-desc">'+escH(g.description)+'</div>':'')+'<div class="gc-meta">'+(g.startDate?'<span>شروع: '+Fmt.fullDate(g.startDate)+'</span>':'')+(g.endDate?'<span>پایان: '+Fmt.fullDate(g.endDate)+'</span>':'')+'</div><div class="gc-pct-row"><span class="gc-pct-lbl">پیشرفت: '+p.toFixed(0)+'%</span></div>'+(target>0?'<div class="gc-desc">مانده تا هدف: '+Fmt.money(Math.max(0,target-saved))+'</div>':'')+'<div class="progress-bar"><div class="pb-fill" style="width:'+p+'%"></div></div><div class="gc-act"><button class="rb ed" data-edit="'+g.id+'">'+Icons.edit+'</button><button class="rb dl" data-del="'+g.id+'">'+Icons.trash+'</button></div></div>';}).join('');gl.querySelectorAll('[data-edit]').forEach(function(b){b.addEventListener('click',function(){App.openGoalForm(b.dataset.edit);});});gl.querySelectorAll('[data-del]').forEach(function(b){b.addEventListener('click',function(){Goals.remove(b.dataset.del);goals.splice(goals.findIndex(function(g){return g.id===b.dataset.del;}),1);renderGoals();Toast.success('حذف شد');});});}catch(e){}}
     setTimeout(function(){var btn=document.getElementById('add-goal');if(btn)btn.addEventListener('click',function(){App.openGoalForm();});renderGoals();},50);
@@ -2231,7 +2243,7 @@ var Finance=(function(){
   function initClient(){if(!client){if(!window.supabase||!window.supabase.createClient)throw new Error('کتابخانه اتصال بارگذاری نشد؛ اینترنت را بررسی کنید.');client=window.supabase.createClient(URL,KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});}return client;}
   async function authState(){var c=initClient(),r=await c.auth.getSession();user=r.data&&r.data.session?r.data.session.user:null;return user;}
   function authView(){return '<div class="fin-auth"><div class="card"><h2>اتصال امن بخش مالی</h2><p class="fin-muted" style="margin-bottom:16px">برای نگهداری اطلاعات مالی در فضای اختصاصی خودت، با حساب Supabase وارد شو یا حساب بساز. این ورود از ورود فعلی سایت جداست.</p><div class="fin-form"><div class="field field-full"><label>ایمیل</label><input id="fin-email" type="email" autocomplete="email" placeholder="name@example.com"></div><div class="field field-full"><label>رمز عبور</label><input id="fin-password" type="password" autocomplete="current-password" placeholder="حداقل ۶ کاراکتر"></div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"><button class="btn btn-primary" id="fin-login">ورود</button><button class="btn btn-ghost" id="fin-signup">ساخت حساب جدید</button></div><div id="fin-auth-msg" class="fin-muted" style="margin-top:12px"></div></div></div>';}
-  function shell(){return '<div class="fin-wrap"><div class="sec-hd"><span class="dot"></span><span>مدیریت امور مالی</span><button class="btn btn-ghost btn-sm" id="fin-notify">اعلان اقساط</button><button class="btn btn-ghost btn-sm" id="fin-logout">خروج مالی</button></div><div class="fin-grid" id="fin-summary"></div><div class="fin-tabs"><button class="fin-tab '+(tab==='receivables'?'active':'')+'" data-fin-tab="receivables">مطالبات</button><button class="fin-tab '+(tab==='debts'?'active':'')+'" data-fin-tab="debts">بدهی‌ها</button><button class="fin-tab '+(tab==='installments'?'active':'')+'" data-fin-tab="installments">اقساط</button></div><div id="fin-content"></div></div>';}
+  function shell(){return '<div class="fin-wrap"><div class="sec-hd"><span class="dot"></span><span>مدیریت امور مالی</span><button class="btn btn-ghost btn-sm" id="fin-notify">اعلان اقساط و بدهی‌ها</button><button class="btn btn-ghost btn-sm" id="fin-logout">خروج مالی</button></div><div class="fin-grid" id="fin-summary"></div><div class="fin-tabs"><button class="fin-tab '+(tab==='receivables'?'active':'')+'" data-fin-tab="receivables">مطالبات</button><button class="fin-tab '+(tab==='debts'?'active':'')+'" data-fin-tab="debts">بدهی‌ها</button><button class="fin-tab '+(tab==='installments'?'active':'')+'" data-fin-tab="installments">اقساط</button></div><div id="fin-content"></div></div>';}
   function render(){var root=document.createElement('div');root.id='finance-root';root.innerHTML='<div class="fin-empty">در حال بررسی اتصال امن...</div>';setTimeout(async function(){try{await authState();draw(root);}catch(e){root.innerHTML='<div class="fin-empty">'+esc(e.message||'خطا در اتصال')+'</div>';}} ,0);return root;}
   function draw(root){if(!root||!root.isConnected)return;if(!user){root.innerHTML=authView();bindAuth(root);return;}root.innerHTML=shell();bindShell(root);load().then(function(){if(root.isConnected)paint(root);}).catch(function(e){var c=root.querySelector('#fin-content');if(c)c.innerHTML='<div class="fin-empty">خطا در دریافت اطلاعات: '+esc(e.message)+'</div>';});}
   function bindAuth(root){var msg=root.querySelector('#fin-auth-msg');async function act(signup){var email=root.querySelector('#fin-email').value.trim(),password=root.querySelector('#fin-password').value;if(!email||password.length<6){msg.textContent='ایمیل معتبر و رمز حداقل ۶ کاراکتری وارد کن.';return;}msg.textContent='در حال اتصال...';try{var c=initClient(),r=signup?await c.auth.signUp({email:email,password:password}):await c.auth.signInWithPassword({email:email,password:password});if(r.error)throw r.error;if(signup&&!r.data.session){msg.textContent='حساب ساخته شد. اگر تأیید ایمیل فعال باشد، ایمیلت را تأیید کن و سپس وارد شو.';return;}user=r.data.user;draw(root);}catch(e){msg.textContent=e.message||'ورود انجام نشد.';}}root.querySelector('#fin-login').onclick=function(){act(false);};root.querySelector('#fin-signup').onclick=function(){act(true);};}
