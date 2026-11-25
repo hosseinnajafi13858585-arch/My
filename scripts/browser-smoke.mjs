@@ -133,7 +133,10 @@ try{
   await page.route('https://raw.githubusercontent.com/iran-market/iran-market.github.io/main/data/popular.json',route=>route.fulfill(marketResponse));
   await page.route('https://cdn.jsdelivr.net/gh/iran-market/iran-market.github.io@main/data/popular.json',route=>route.fulfill(marketResponse));
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('market'));
-  await appFrame.locator('.mzn-market-card').nth(5).waitFor({state:'visible',timeout:10000});
+  await appFrame.locator('.mzn-market-status').waitFor({state:'visible',timeout:10000});
+  await appFrame.locator('.mzn-market-card').first().waitFor({state:'visible',timeout:10000}).catch(()=>{});
+  const marketState=await appFrame.locator('.mzn-market').evaluate(el=>({cards:el.querySelectorAll('.mzn-market-card').length,status:(el.querySelector('#mzn-market-status')||{}).textContent||'',text:el.innerText.slice(0,900)}));
+  if(marketState.cards!==6)throw new Error('Market feed did not render six fixture symbols: '+JSON.stringify(marketState));
   const marketText=await appFrame.locator('.mzn-market').innerText();
   if(!marketText.includes('طلای ۱۸ عیار')||!marketText.includes('سکه امامی')||!marketText.includes('تتر'))throw new Error('Market symbols did not render correctly');
   if(marketText.includes('منبع رایگان'))throw new Error('Market page still exposes the forbidden source label');
