@@ -82,7 +82,7 @@ assert.match(enhancementHtml,/USDT_IRR/,'Market feed must map Tether symbol');
 assert.match(enhancementHtml,/raw\.githubusercontent\.com\/iran-market/,'Market must use the public JSON feed');
 assert.match(enhancementHtml,/mizan-market-cache-v2/,'Market offline cache missing');
 assert.doesNotMatch(enhancementHtml,/منبع رایگان/,'Market UI must not display the phrase منبع رایگان');
-const marketHelpers=enhancementHtml.match(/function normalizeMarketPayload\(payload\)[\s\S]*?(?=async function saveMarketHistory)/)?.[0];
+const marketHelpers=enhancementHtml.match(/function normalizeMarketPayload\(payload\)[\s\S]*?(?=function renderMarket)/)?.[0];
 assert.ok(marketHelpers,'Market normalization helper extraction failed');
 const marketFixture={meta:{published_at:'2026-11-25T08:00:00.000Z'},data:[
   {symbol:'USD_IRR_FREE',name_fa:'دلار',currency:'IRR',price:2584650,change_pct:1,timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
