@@ -526,10 +526,31 @@
       if (!('Notification' in window) || Notification.permission !== 'granted') return;
       try {
         var s = await session(); if (!s.user) return;
+        function sendOnce(title, body, key) {
+          if (localStorage.getItem(key)) return;
+          var options = { body: body, tag: key, icon: './icon.svg', badge: './icon.svg' };
+          if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+            navigator.serviceWorker.ready.then(function (reg) { return reg.showNotification(title, options); })
+              .catch(function () { try { new Notification(title, options); } catch (e) {} });
+          } else { try { new Notification(title, options); } catch (e) {} }
+          localStorage.setItem(key, String(Date.now()));
+        }
         var now = Date.now(), from = new Date(now - 60000).toISOString(), to = new Date(now + 60000).toISOString();
         var due = await s.client.from('mizan_reminders').select('id,title,due_at').eq('completed', false).gte('due_at', from).lte('due_at', to);
-        if (due.error) return;
-        (due.data || []).forEach(function (x) { var key = 'mizan-notified-' + x.id; if (!localStorage.getItem(key)) { if (navigator.serviceWorker && navigator.serviceWorker.ready) navigator.serviceWorker.ready.then(function (reg) { return reg.showNotification('یادآوری میزان', { body: x.title, tag: key }); }).catch(function () { new Notification('یادآوری میزان', { body: x.title }); }); else new Notification('یادآوری میزان', { body: x.title }); localStorage.setItem(key, String(Date.now())); } });
+        if (!due.error) (due.data || []).forEach(function (x) { sendOnce('یادآوری میزان', x.title, 'mizan-notified-' + x.id); });
+        var tehran = tehranDateTimeParts(new Date());
+        if (tehran && Number(tehran.hour) >= 9) {
+          var todayISO = tehran.year + '-' + tehran.month + '-' + tehran.day;
+          var installmentsDue = await s.client.from('installments')
+            .select('id,installment_number,amount,paid_amount,due_date')
+            .eq('due_date', todayISO).is('paid_at', null);
+          if (!installmentsDue.error) (installmentsDue.data || []).forEach(function (x) {
+            var remaining = Math.max(0, num(x.amount) - num(x.paid_amount));
+            if (remaining <= 0) return;
+            var key = 'mizan-installment-notified-' + x.id + '-' + todayISO;
+            sendOnce('سررسید قسط در میزان', 'قسط ' + x.installment_number + ' امروز سررسید دارد. مانده قابل پرداخت: ' + money(remaining), key);
+          });
+        }
       } catch (e) { console.warn('Reminder notification check failed', e); }
     }
     checkDueNotifications();
