@@ -2302,14 +2302,31 @@ var Finance=(function(){
       try{localStorage.setItem(key,'1');}catch(e){}
     }catch(e){console.warn('installment notification failed',e);}
   }
+  function notifyDebtDue(x){
+    var key='mizan-debt-notified:'+x.id+':'+x.due_date;
+    try{if(localStorage.getItem(key))return;}catch(e){}
+    var title='سررسید بدهی · '+(x.creditor_name||'بدهی ثبت‌شده');
+    var body='مانده بدهی: '+money(Math.max(0,num(x.amount)-num(x.paid_amount)))+' · برای ثبت پرداخت وارد میزان شو.';
+    try{
+      if(navigator.serviceWorker&&navigator.serviceWorker.ready){
+        navigator.serviceWorker.ready.then(function(reg){return reg.showNotification(title,{body:body,tag:key,icon:'./icon.svg',data:{url:'./'}});})
+          .catch(function(){if(window.Notification&&Notification.permission==='granted')new Notification(title,{body:body,tag:key});});
+      }else if(window.Notification&&Notification.permission==='granted')new Notification(title,{body:body,tag:key});
+      try{localStorage.setItem(key,'1');}catch(e){}
+    }catch(e){console.warn('debt notification failed',e);}
+  }
   var installmentNotificationTimer=null;
   function checkInstallmentNotifications(){
     if(!user||!window.Notification||Notification.permission!=='granted')return;
     var now=Date.now();
-    data.installments.filter(function(x){return num(x.paid_amount)<num(x.amount);}).forEach(function(x){
+    data.installments.filter(function(x){return x.due_date&&num(x.paid_amount)<num(x.amount);}).forEach(function(x){
       var plan=data.plans.find(function(p){return p.id===x.plan_id;});if(!plan)return;
       var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;
       if(age>=0&&age<7*24*60*60*1000)notifyInstallmentDue(x,plan);
+    });
+    data.debts.filter(function(x){return x.due_date&&num(x.paid_amount)<num(x.amount);}).forEach(function(x){
+      var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;
+      if(age>=0&&age<7*24*60*60*1000)notifyDebtDue(x);
     });
   }
   function scheduleInstallmentNotifications(){
