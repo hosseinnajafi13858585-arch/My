@@ -661,34 +661,6 @@
     if (parentDoc !== document) addStyle(document, 'mizan-motion-iframe-style');
   }
 
-  function installModalLayerGuard() {
-    if (window.__mizanModalGuardInstalled) return;
-    var parentDoc = null;
-    try { parentDoc = window.parent && window.parent !== window ? window.parent.document : null; } catch (e) {}
-    if (!parentDoc || !parentDoc.body || !document.body) return;
-    var syncModalLayer = function () {
-      var open = !!document.querySelector('.modal-back');
-      document.body.classList.toggle('mzn-modal-open', open);
-      parentDoc.body.classList.toggle('mzn-modal-open', open);
-    };
-    if (window.MutationObserver) {
-      var modalObserver = new MutationObserver(syncModalLayer);
-      modalObserver.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] });
-    }
-    var modalApi = window.Modal;
-    if (modalApi && !modalApi.__mizanGuardInstalled) {
-      var originalModalOpen = modalApi.open, originalModalClose = modalApi.close;
-      modalApi.open = function () { var result = originalModalOpen.apply(this, arguments); syncModalLayer(); return result; };
-      modalApi.close = function () { var result = originalModalClose.apply(this, arguments); syncModalLayer(); return result; };
-      modalApi.__mizanGuardInstalled = true;
-    }
-    syncModalLayer();
-    window.__mizanModalGuardInstalled = true;
-    window.addEventListener('pagehide', function () {
-      try { document.body.classList.remove('mzn-modal-open'); parentDoc.body.classList.remove('mzn-modal-open'); } catch (e) {}
-    });
-  }
-
   function installNavigation() {
     if (!window.UI || !window.App || UI.__mizanNavigationInstalled) return;
     var old = UI.navTabs;
@@ -750,7 +722,6 @@
   installMotionStyles();
   installAssistantFab();
   installNavigation();
-  installModalLayerGuard();
   document.addEventListener('DOMContentLoaded', function () { setTimeout(syncAllGoals, 1800); });
   document.addEventListener('click', function (e) {
     var nav = e.target && e.target.closest ? e.target.closest('.global-nav') : null;
