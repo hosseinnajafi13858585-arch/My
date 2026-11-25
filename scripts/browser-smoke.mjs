@@ -122,6 +122,7 @@ try{
     if(routeText.includes('خطا در بارگذاری صفحه'))throw new Error('App route threw a render error: '+route);
   }
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('achievements'));
+  await appFrame.locator('#app').evaluate(()=>new Promise(resolve=>setTimeout(resolve,80)));
   await appFrame.locator('#add-goal').click();
   await appFrame.locator('#app').evaluate(()=>new Promise(resolve=>setTimeout(resolve,80)));
   const navState=await appFrame.locator('#app').evaluate(()=>{
@@ -138,6 +139,7 @@ try{
   const navRestored=await appFrame.locator('#app').evaluate(()=>{const nav=window.parent.document.querySelector('.global-nav');return !!nav&&!document.body.classList.contains('mzn-modal-open')&&!window.parent.document.body.classList.contains('mzn-modal-open')&&window.parent.getComputedStyle(nav).pointerEvents!=='none';});
   if(!navRestored)throw new Error('Floating navigation did not return after modal close');
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('reminders'));
+  await appFrame.locator('#app').evaluate(()=>new Promise(resolve=>setTimeout(resolve,80)));
   await appFrame.locator('#add-rem').click();
   await appFrame.locator('#rf-t').fill('تست ساعت تهران');
   await appFrame.locator('#rf-dt').fill('2026-11-26T09:30');
