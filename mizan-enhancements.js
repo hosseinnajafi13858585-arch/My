@@ -70,8 +70,8 @@
     return out;
   }
   function tehranDateTimeToISO(dateISO, time) {
-    var date = String(dateISO || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
-    var clock = String(time || '').match(/^(\\d{2}):(\\d{2})$/);
+    var date = String(dateISO || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    var clock = String(time || '').match(/^(\d{2}):(\d{2})$/);
     if (!date || !clock) return '';
     var utc = Date.UTC(+date[1], +date[2] - 1, +date[3], +clock[1], +clock[2]) - 210 * 60000;
     return new Date(utc).toISOString();
@@ -81,7 +81,7 @@
     return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('fa-IR', { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date) : '—';
   }
   function shiftGregorianDate(dateISO, rule) {
-    var match = String(dateISO || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+    var match = String(dateISO || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!match) return '';
     var year = +match[1], month = +match[2], day = +match[3], date;
     if (rule === 'daily' || rule === 'weekly') {
