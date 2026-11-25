@@ -580,7 +580,8 @@
       fetch(url,{cache:'no-store'}).then(function(r){if(!r.ok)throw Error('reverse_geocode_'+r.status);return r.json();}).then(function(p){
         var local=p.locality||p.city||p.localityInfo&&p.localityInfo.administrative&&p.localityInfo.administrative[0]&&p.localityInfo.administrative[0].name||'',province=p.principalSubdivision||'',country=p.countryName||'';
         weatherLastPlace=[local,province,country].filter(Boolean).filter(function(x,i,a){return a.indexOf(x)===i;}).join('، ')||'منطقه فعلی';
-        document.querySelectorAll('[data-mzn-location-label]').forEach(function(n){n.textContent='📍 '+weatherLastPlace;});
+        var accuracy=weatherLastCoords&&weatherLastCoords.accuracy?' · دقت GPS حدود ±'+Math.round(weatherLastCoords.accuracy)+' متر':'';
+        document.querySelectorAll('[data-mzn-location-label]').forEach(function(n){n.textContent='📍 '+weatherLastPlace+accuracy;});
       }).catch(function(err){console.warn('Mizan reverse geocoding unavailable',err);});
     }
     function startLiveLocation(force){
