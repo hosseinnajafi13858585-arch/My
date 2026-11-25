@@ -22,6 +22,12 @@ if(!html.includes('viewport-fit=cover')||!entryHtml.includes('viewport-fit=cover
 for(const page of ['compare','behavior','weather'])if(!html.includes("case'"+page+"'")||!ext.includes(page+': render'))throw Error('Missing route '+page);
 if(/function renderAssistant|function assistantReply|function forecast\(/.test(ext)||/case'assistant'|پیش‌بینی شفاف پایان ماه/.test(html))throw Error('Removed feature still referenced');
 if(!ext.includes('function weatherSeason')||!ext.includes('weatherSeason(d.timezone)'))throw Error('Weather season mapping missing');
+const qfn=ext.match(/function dailyQuote\(\)\{([\s\S]*?)\n  \}/);if(!qfn)throw Error('Motivation bank missing');
+const starts=qfn[1].match(/var starts=\[([\s\S]*?)\];/),ends=qfn[1].match(/var ends=\[([\s\S]*?)\];/);if(!starts||!ends)throw Error('Motivation lists missing');
+const count=(starts[1].match(/,/g)||[]).length+1;const endCount=(ends[1].match(/,/g)||[]).length+1;if(count*endCount<200)throw Error('Motivation bank must contain at least 200 unique combinations');
+if(!ext.includes('navigator.geolocation.watchPosition')||!ext.includes('weatherRefreshTimer=window.setInterval')||!ext.includes('api.bigdatacloud.net/data/reverse-geocode-client'))throw Error('Live GPS weather missing');
+if(!ext.includes('api.coingecko.com/api/v3/simple/price')||!ext.includes("if(bitcoin)items.push(bitcoin)"))throw Error('Bitcoin market quote missing');
+if(!html.includes('mzn-home-weather-wrap')||!ext.includes('homeWeather.appendChild(weatherCard)'))throw Error('Home weather placement missing');
 if(!entryHtml.includes('mzn-theme-christmas')||!entryHtml.includes('mzn-theme-nowruz'))throw Error('Login seasonal theme missing');
 for(const icon of manifest.icons||[])if(!fs.existsSync(icon.src.replace(/^\.\//,'')))throw Error('Missing manifest icon '+icon.src);
 const shell=(sw.match(/const SHELL_FILES=\[([\s\S]*?)\];/)||[])[1];
