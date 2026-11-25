@@ -73,6 +73,17 @@ assert.match(appHtml,/Reminders\.add\(payload\)/,'New installment must create an
 assert.match(appHtml,/requestInstallmentNotificationPermission/,'Installment notification permission flow missing');
 assert.match(appHtml,/checkInstallmentNotifications/,'Installment notification scheduler missing');
 assert.match(appHtml,/جمع اقساط/,'Installment total display missing');
+const scheduleHelpers=appHtml.match(/function scheduleRowsHtml\(count,total,firstDate\)[\s\S]*?(?=function requestInstallmentNotificationPermission)/)?.[0];
+assert.ok(scheduleHelpers,'Installment schedule HTML helper extraction failed');
+const scheduleHtml=new Function("var window={Icons:null};function addMonthsDbDate(d,n){return d+'-'+n;}function dbDateToJalali(d){return d;}function esc(v){return String(v);}" + scheduleHelpers + "return scheduleRowsHtml(3,100,'1405-09-04');")();
+assert.match(scheduleHtml,/id="fip-amount-1"[^>]*value="33"/);
+assert.match(scheduleHtml,/id="fip-amount-2"[^>]*value="33"/);
+assert.match(scheduleHtml,/id="fip-amount-3"[^>]*value="34"/);
+assert.match(scheduleHtml,/id="fip-due-3"/);
+const reminderDateHelper=appHtml.match(/function reminderDateTime\(dueDate\)[\s\S]*?(?=function syncInstallmentReminder)/)?.[0];
+assert.ok(reminderDateHelper,'Installment reminder Tehran date helper missing');
+assert.equal(new Function(reminderDateHelper+"return reminderDateTime('2026-11-25');")(),'2026-11-25T05:30:00.000Z');
+
 assert.match(appHtml,/oldRows\[n\]/,'Rebuilding installment count must preserve existing custom values');
 assert.match(enhancementHtml,/function normalizeMarketPayload\(payload\)/,'Market payload normalizer missing');
 assert.match(enhancementHtml,/USD_IRR_FREE/,'Market feed must map USD symbol');
