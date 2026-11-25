@@ -50,7 +50,7 @@ assert.match(read('index.html'),/auth\.getSession\(\)/,'Offline entry must requi
 assert.match(read('index.html'),/beforeinstallprompt/,'Android install prompt handler missing');
 assert.match(read('index.html'),/apple-mobile-web-app-capable/,'iOS web app metadata missing');
 assert.match(read('index-1.html'),/mizan-premium-motion-v1/,'App motion layer missing');
-assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=20/,'Enhancement cache version mismatch');
+assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=21/,'Enhancement cache version mismatch');
 const appHtml=read('index-1.html');
 assert.match(appHtml,/function syncParentModalLayer\(open\)/,'Modal layer synchronization missing');
 assert.match(appHtml,/syncParentModalLayer\(true\)/,'Opening a modal must suppress floating navigation');
@@ -65,6 +65,31 @@ assert.match(appHtml,/table==='personal_debt'\?'updated_at':'created_at'/,'Perso
 assert.match(appHtml,/payload\.updated_at=new Date\(\)\.toISOString\(\)/,'Personal debt updates must refresh updated_at');
 assert.match(appHtml,/parentPatch\.updated_at=new Date\(\)\.toISOString\(\)/,'Debt payments must refresh updated_at');
 const enhancementHtml=read('mizan-enhancements.js');
+assert.match(appHtml,/function bindScheduleDatePicker/,'Per-installment Jalali date picker helper missing');
+assert.match(appHtml,/#ff-schedule/,'Per-installment schedule editor missing');
+assert.match(appHtml,/ff-row-amount-/,'Per-installment amount editor missing');
+assert.match(appHtml,/مجموع اقساط/,'Installment schedule total validation missing');
+assert.match(enhancementHtml,/mizan-installment-notified-/,'Installment notification deduplication missing');
+assert.match(enhancementHtml,/\.eq\('due_date', todayISO\)/,'Installment notifications must query each due date');
+assert.match(enhancementHtml,/function normalizeMarketPayload/,'Market payload normalizer missing');
+assert.match(enhancementHtml,/USD_IRR_FREE/,'Market feed must map USD symbol');
+assert.match(enhancementHtml,/GOLD_18K_IRR/,'Market feed must map 18K gold symbol');
+assert.match(enhancementHtml,/COIN_EMAMI_IRR/,'Market feed must map Emami coin symbol');
+assert.match(enhancementHtml,/USDT_IRR/,'Market feed must map Tether symbol');
+assert.doesNotMatch(enhancementHtml,/منبع رایگان/,'Market UI must not display the phrase منبع رایگان');
+const marketHelpers=enhancementHtml.match(/function normalizeMarketPayload[\\s\\S]*?(?=async function fetchMarketPayload)/)?.[0];
+assert.ok(marketHelpers,'Market normalization helper extraction failed');
+const marketFixture={meta:{unit:'toman',stale:false},data:[
+  {symbol:'USD_IRR_FREE',name_fa:'دلار',price:285000,change_pct:1,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
+  {symbol:'GOLD_18K_IRR',name_fa:'طلای ۱۸',price:25000000,change_pct:-0.5,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'}
+]};
+const normalized=new Function(marketHelpers+'return normalizeMarketPayload('+JSON.stringify(marketFixture)+');')();
+assert.equal(normalized.length,2);
+assert.equal(normalized[0].id,'usd');
+assert.equal(normalized[0].price,285000);
+assert.equal(normalized[1].id,'gold-18k');
+assert.equal(normalized[1].price,25000000);
+
 const enhancementHelpers=enhancementHtml.match(/function tehranDateTimeParts[\s\S]*?(?=function getClient)/)?.[0];
 assert.ok(enhancementHelpers,'Cloud reminder timezone helpers are missing');
 const enhancementDateTest=new Function(enhancementHelpers+"return {iso:tehranDateTimeToISO('2026-11-26','09:30'),parts:tehranDateTimeParts('2026-11-26T06:00:00.000Z'),weekly:shiftGregorianDate('2026-11-26','weekly'),monthly:shiftGregorianDate('2026-01-31','monthly'),yearly:shiftGregorianDate('2024-02-29','yearly')};")();
