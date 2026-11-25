@@ -77,8 +77,8 @@
     return new Date(utc).toISOString();
   }
   function formatTehranTime(value) {
-    var parts = tehranDateTimeParts(value);
-    return parts ? parts.hour + ':' + parts.minute : '—';
+    var date = new Date(value);
+    return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('fa-IR', { timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(date) : '—';
   }
   function shiftGregorianDate(dateISO, rule) {
     var match = String(dateISO || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
