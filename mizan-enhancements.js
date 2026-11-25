@@ -263,8 +263,8 @@
   function normalizeMarketPayload(payload) {
     if (!payload || !Array.isArray(payload.data)) throw new Error('ساختار اطلاعات بازار معتبر نیست.');
     var definitions = [
-      ['USD_IRR_FREE','دلار آمریکا'],['EUR_IRR_FREE','یورو'],['GBP_IRR_FREE','پوند انگلیس'],
-      ['GOLD_18K_IRR','طلای ۱۸ عیار · هر گرم'],['COIN_EMAMI_IRR','سکه امامی'],['USDT_IRR','تتر']
+      ['USD_IRR_FREE','usd','دلار آمریکا'],['EUR_IRR_FREE','eur','یورو'],['GBP_IRR_FREE','gbp','پوند انگلیس'],
+      ['GOLD_18K_IRR','gold-18k','طلای ۱۸ عیار · هر گرم'],['COIN_EMAMI_IRR','coin-emami','سکه امامی'],['USDT_IRR','usdt','تتر']
     ];
     var out = [];
     definitions.forEach(function (def) {
@@ -277,10 +277,10 @@
       var stamp=raw.timestamp_tehran||raw.checked_at||raw.timestamp||(payload.meta&&payload.meta.published_at)||null;
       var stampMs=stamp?new Date(stamp).getTime():0;
       out.push({
-        id:def[0],symbol:raw.symbol,name:raw.name_fa||def[1],price:price,currency:'IRT',
+        id:def[1],symbol:raw.symbol,name:raw.name_fa||def[2],price:price,currency:'IRT',
         change_pct:raw.change_pct==null?null:Number(raw.change_pct),
         updated_utc:raw.timestamp||raw.checked_at||null,updated_display:stamp,
-        stale:!!raw.stale||!stampMs||Date.now()-stampMs>45*60*1000,
+        stale:!!raw.stale||!!(payload.meta&&payload.meta.stale)||!stampMs||Date.now()-stampMs>45*60*1000,
         source:raw.source||'Iran Market Data'
       });
     });
@@ -297,9 +297,9 @@
       button('mzn-market-refresh', 'به‌روزرسانی', Icons.refresh, 'btn btn-ghost')
     );
     var labels = {
-      USD_IRR_FREE:'دلار آمریکا', EUR_IRR_FREE:'یورو', GBP_IRR_FREE:'پوند انگلیس',
-      GOLD_18K_IRR:'طلای ۱۸ عیار · هر گرم', COIN_EMAMI_IRR:'سکه امامی',
-      USDT_IRR:'تتر'
+      usd:'دلار آمریکا', eur:'یورو', gbp:'پوند انگلیس',
+      'gold-18k':'طلای ۱۸ عیار · هر گرم', 'coin-emami':'سکه امامی',
+      usdt:'تتر'
     };
     function renderItems(items,fromCache,publishedAt){
       var grid=root.querySelector('#mzn-market-grid'),status=root.querySelector('#mzn-market-status');
@@ -307,7 +307,7 @@
       grid.innerHTML=items.map(function(x){
         var pct=x.change_pct==null?'تغییر روزانه ثبت نشده':((x.change_pct>0?'+':'')+Number(x.change_pct).toLocaleString('fa-IR',{maximumFractionDigits:2})+'٪');
         var trend=x.change_pct>0?'up':x.change_pct<0?'down':'flat';
-        return '<article class="mzn-market-card"><div class="mzn-market-card-head"><span>'+h(labels[x.id]||x.name||x.id)+'</span><span class="mzn-trend '+trend+'">'+pct+'</span></div><strong>'+money(x.price)+'</strong><small>آخرین زمان ثبت: '+h(marketTime(x.updated_utc||publishedAt))+'</small>'+(fromCache||x.stale?'<em class="mzn-stale">دادهٔ ذخیره‌شده یا قدیمی؛ برای تصمیم مالی دوباره بررسی کن.</em>':'<em class="mzn-fresh">آخرین دادهٔ دریافتی</em>')+'</article>';
+        return '<article class="mzn-market-card"><div class="mzn-market-card-head"><span>'+h(labels[x.id]||x.name||x.id)+'</span><span class="mzn-trend '+trend+'">'+pct+'</span></div><strong>'+money(x.price)+'</strong><small>آخرین زمان ثبت: '+h(marketTime(x.updated_display||x.updated_utc||publishedAt))+'</small>'+(fromCache||x.stale?'<em class="mzn-stale">دادهٔ ذخیره‌شده یا قدیمی؛ برای تصمیم مالی دوباره بررسی کن.</em>':'<em class="mzn-fresh">آخرین دادهٔ دریافتی</em>')+'</article>';
       }).join('');
       var time=marketTime(publishedAt||items[0].updated_utc);
       status.innerHTML=(fromCache?'<span class="mzn-error-dot"></span>':'<span class="mzn-live-dot"></span>')+(fromCache?'نمایش آخرین دادهٔ ذخیره‌شده':'داده‌ها با موفقیت دریافت شدند')+' · زمان انتشار: '+h(time);
