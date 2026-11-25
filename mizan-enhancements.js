@@ -761,9 +761,10 @@
   async function sendMizanNotification(title,body,eventKey,type,metadata){
     try{var s=await session();if(!s.user)return false;var row={user_id:s.user.id,title:title,body:body,notification_type:type||'general',event_key:eventKey,metadata:metadata||{}};
       var saved=await s.client.from('mizan_notifications').upsert(row,{onConflict:'user_id,event_key',ignoreDuplicates:true}).select('id');if(saved.error)throw saved.error;
-      var created=!!(saved.data&&saved.data.length);
-      if(created&&window.Notification&&Notification.permission==='granted'){var opts={body:body,tag:eventKey,icon:'./icon.svg',badge:'./icon.svg',data:{url:'./'}};
+      var created=!!(saved.data&&saved.data.length),osKey='mizan-os-notified:'+eventKey,alreadyShown=false;try{alreadyShown=localStorage.getItem(osKey)==='1';}catch(e){}
+      if(window.Notification&&Notification.permission==='granted'&&!alreadyShown){var opts={body:body,tag:eventKey,icon:'./icon.svg',badge:'./icon.svg',data:{url:'./'}};
         if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(function(reg){return reg.showNotification(title,opts);}).catch(function(){try{new Notification(title,opts);}catch(e){}});}else{try{new Notification(title,opts);}catch(e){}}
+        try{localStorage.setItem(osKey,'1');}catch(e){}
       }return true;
     }catch(e){console.warn('Persist notification failed',e);return false;}
   }
