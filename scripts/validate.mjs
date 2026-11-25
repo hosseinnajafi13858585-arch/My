@@ -64,7 +64,7 @@ assert.match(appHtml,/table==='personal_debt'\?'updated_at':'created_at'/,'Perso
 assert.match(appHtml,/payload\.updated_at=new Date\(\)\.toISOString\(\)/,'Personal debt updates must refresh updated_at');
 assert.match(appHtml,/parentPatch\.updated_at=new Date\(\)\.toISOString\(\)/,'Debt payments must refresh updated_at');
 const enhancementHtml=read('mizan-enhancements.js');
-const enhancementHelpers=enhancementHtml.match(/function tehranDateTimeParts[\\s\\S]*?(?=function getClient)/)?.[0];
+const enhancementHelpers=enhancementHtml.match(/function tehranDateTimeParts[\s\S]*?(?=function getClient)/)?.[0];
 assert.ok(enhancementHelpers,'Cloud reminder timezone helpers are missing');
 const enhancementDateTest=new Function(enhancementHelpers+"return {iso:tehranDateTimeToISO('2026-11-26','09:30'),parts:tehranDateTimeParts('2026-11-26T06:00:00.000Z'),weekly:shiftGregorianDate('2026-11-26','weekly'),monthly:shiftGregorianDate('2026-01-31','monthly'),yearly:shiftGregorianDate('2024-02-29','yearly')};")();
 assert.equal(enhancementDateTest.iso,'2026-11-26T06:00:00.000Z');
