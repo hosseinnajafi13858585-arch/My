@@ -52,7 +52,7 @@ assert.match(read('index.html'),/apple-mobile-web-app-capable/,'iOS web app meta
 assert.match(read('index-1.html'),/mizan-premium-motion-v1/,'App motion layer missing');
 assert.match(read('mizan-enhancements.js'),/mzn-modal-open/,'Modal must suppress parent floating navigation');
 assert.match(read('mizan-enhancements.js'),/new MutationObserver\(syncModalLayer\)/,'Modal navigation guard observer missing');
-assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=14/,'Enhancement cache version mismatch');
+assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=15/,'Enhancement cache version mismatch');
 const appHtml=read('index-1.html');
 const dateHelpers=appHtml.match(/function isoToTehranDateTimeInput[\s\S]*?(?=function openReminderForm)/)?.[0];
 assert.ok(dateHelpers,'Tehran datetime helpers are missing');
@@ -63,5 +63,17 @@ assert.match(read('mizan-enhancements.js'),/toLocaleDateString\('fa-IR-u-ca-pers
 assert.match(appHtml,/table==='personal_debt'\?'updated_at':'created_at'/,'Personal debt queries must sort by the existing updated_at column');
 assert.match(appHtml,/payload\.updated_at=new Date\(\)\.toISOString\(\)/,'Personal debt updates must refresh updated_at');
 assert.match(appHtml,/parentPatch\.updated_at=new Date\(\)\.toISOString\(\)/,'Debt payments must refresh updated_at');
+const enhancementHtml=read('mizan-enhancements.js');
+const enhancementHelpers=enhancementHtml.match(/function tehranDateTimeParts[\\s\\S]*?(?=function getClient)/)?.[0];
+assert.ok(enhancementHelpers,'Cloud reminder timezone helpers are missing');
+const enhancementDateTest=new Function(enhancementHelpers+"return {iso:tehranDateTimeToISO('2026-11-26','09:30'),parts:tehranDateTimeParts('2026-11-26T06:00:00.000Z'),weekly:shiftGregorianDate('2026-11-26','weekly'),monthly:shiftGregorianDate('2026-01-31','monthly'),yearly:shiftGregorianDate('2024-02-29','yearly')};")();
+assert.equal(enhancementDateTest.iso,'2026-11-26T06:00:00.000Z');
+assert.equal(enhancementDateTest.parts.hour,'09');
+assert.equal(enhancementDateTest.parts.minute,'30');
+assert.equal(enhancementDateTest.weekly,'2026-12-03');
+assert.equal(enhancementDateTest.monthly,'2026-02-28');
+assert.equal(enhancementDateTest.yearly,'2025-02-28');
+assert.match(enhancementHtml,/formatTehranTime\(x\.due_at\)/,'Cloud reminder display must use Tehran time');
+assert.doesNotMatch(enhancementHtml,/new Date\(iso \+ 'T' \+ time/,'Cloud reminder must not parse Tehran time in device timezone');
 assert.doesNotMatch(['index.html','index-1.html','mizan-enhancements.js','sw.js'].map(read).join('\n'),/sb_secret_[A-Za-z0-9_-]+|service_role/i,'Privileged Supabase secret detected in public client code');
 console.log('PWA manifest, install hooks, offline auth guard, precache assets, and public-key safety checks passed.');
