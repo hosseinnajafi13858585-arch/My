@@ -2290,17 +2290,22 @@ var Finance=(function(){
       try{localStorage.setItem(key,'1');}catch(e){}
     }catch(e){console.warn('installment notification failed',e);}
   }
-  var installmentNotificationTimers=[];
-  function scheduleInstallmentNotifications(){
-    installmentNotificationTimers.forEach(function(t){clearTimeout(t);});installmentNotificationTimers=[];
+  var installmentNotificationTimer=null;
+  function checkInstallmentNotifications(){
     if(!window.Notification||Notification.permission!=='granted')return;
     var now=Date.now();
     data.installments.filter(function(x){return num(x.paid_amount)<num(x.amount);}).forEach(function(x){
       var plan=data.plans.find(function(p){return p.id===x.plan_id;});if(!plan)return;
-      var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),delay=due-now;
-      if(delay<=0&&delay>-24*60*60*1000){notifyInstallmentDue(x,plan);return;}
-      if(delay>0&&delay<2140000000)installmentNotificationTimers.push(setTimeout(function(){notifyInstallmentDue(x,plan);},delay));
+      var due=new Date(String(x.due_date)+'T09:00:00+03:30').getTime(),age=now-due;
+      if(age>=0&&age<7*24*60*60*1000)notifyInstallmentDue(x,plan);
     });
+  }
+  function scheduleInstallmentNotifications(){
+    if(installmentNotificationTimer)clearInterval(installmentNotificationTimer);
+    installmentNotificationTimer=null;
+    if(!window.Notification||Notification.permission!=='granted')return;
+    checkInstallmentNotifications();
+    installmentNotificationTimer=setInterval(checkInstallmentNotifications,60*1000);
   }
   function openForm(type,rec){
     var isRec=type==='rec',isDebt=type==='debt',title=isRec?'ثبت طلب':isDebt?'ثبت بدهی':'ساخت برنامه اقساط';
