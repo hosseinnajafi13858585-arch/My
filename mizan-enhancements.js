@@ -162,7 +162,6 @@
     var max = Math.max(1, ...week.map(function (x) { return Math.max(x.sales, x.expenses); }));
     var f = forecast(d);
     var quote = dailyQuote();
-    var goals = Goals.load().filter(function (g) { return g.status === 'inprogress' || g.status === 'active'; });
     var rems = Reminders.load().filter(function (r) { return !r.completed; }).sort(function (a, b) { return new Date(a.dateTime || 0) - new Date(b.dateTime || 0); }).slice(0, 3);
     var root = el('mzn-page mzn-dashboard',
       '<div class="mzn-welcome"><div><span class="mzn-eyebrow">MIZAN · PERSONAL FINANCE</span><h2>' + greeting() + '، ' + h((Auth.getUser() && (Auth.getUser().name || Auth.getUser().username)) || 'خوش آمدی') + '</h2><p>امروز ' + h(Jalali.faDigits(Jalali.fmt(t[0], t[1], t[2]))) + ' است؛ وضعیت مالی‌ات را یک‌جا ببین.</p><p class="mzn-daily-quote">' + h(quote) + '</p></div><div class="mzn-date-chip">' + h(Jalali.MONTHS[t[1] - 1].fa + ' ' + Jalali.faDigits(t[0])) + '</div></div>' +
@@ -182,19 +181,13 @@
       '</div><div class="mzn-week-legend"><span><i class="mzn-dot-sale"></i>فروش</span><span><i class="mzn-dot-exp"></i>هزینه</span><strong>فروش: ' + money(week.reduce(function (a, x) { return a + x.sales; }, 0)) + '</strong></div></div>' +
       '<div class="mzn-grid mzn-grid-two">' +
       '<div class="mzn-panel mzn-forecast-panel"><div class="mzn-panel-head"><div><h3>پیش‌بینی شفاف پایان ماه</h3><p>محاسبه از داده‌های واقعی ثبت‌شده؛ نه حدس قطعی</p></div>' + Icons.trendingUp + '</div><strong class="mzn-forecast-value">' + money(f.projected) + '</strong><p class="mzn-muted">حقوق خالص تخمینی · کیفیت داده: ' + h(f.quality) + ' · ' + f.elapsed.toLocaleString('fa-IR') + ' روز سپری‌شده از ' + f.days.toLocaleString('fa-IR') + ' روز</p><div class="mzn-forecast-scenarios"><span>محتاطانه <b>' + money(f.conservative) + '</b></span><span>مبنای فعلی <b>' + money(f.projected) + '</b></span><span>خوش‌بینانه <b>' + money(f.optimistic) + '</b></span></div><div class="mzn-forecast-breakdown"><div><span>فروش فعلی</span><b>' + money(f.salesToDate) + '</b></div><div><span>فروش پیش‌بینی‌شده</span><b>' + money(f.projectedSales) + '</b></div><div><span>ساعت فعلی کار</span><b>' + f.hoursToDate.toLocaleString('fa-IR') + ' ساعت</b></div><div><span>ساعت پیش‌بینی‌شده</span><b>' + f.projectedHours.toLocaleString('fa-IR') + ' ساعت</b></div><div><span>پورسانت تخمینی (' + f.commissionPct.toLocaleString('fa-IR') + '٪)</span><b>' + money(f.projectedCommission) + '</b></div><div><span>حقوق ساعتی تخمینی</span><b>' + money(f.projectedHourlySalary) + '</b></div><div><span>حقوق ثابت</span><b>' + money(f.fixedSalary) + '</b></div><div><span>مزایا و هزینه‌های قابل احتساب</span><b>' + money(f.benefits+f.eligibleExpenses) + '</b></div><div><span>کسورات ثبت‌شده</span><b>− ' + money(f.deductions) + '</b></div></div><p class="mzn-muted">روش محاسبه: فروش فعلی + میانگین فروش روزانه × ' + f.remainingDays.toLocaleString('fa-IR') + ' روز باقی‌مانده؛ ساعت فعلی + میانگین ساعت هر روز کاری × ' + f.futureWorkDays.toLocaleString('fa-IR') + ' روز کاری باقی‌مانده. پورسانت و حقوق ساعتی با نرخ‌های ثبت‌شده محاسبه شده‌اند.</p><div id="mzn-forecast-receivables" class="mzn-forecast-extra"><p class="mzn-muted">در حال بررسی مطالبات ثبت‌شده...</p></div></div>' +
-      '<div class="mzn-panel"><div class="mzn-panel-head"><div><h3>هدف‌های فعال</h3><p>مانده تا رسیدن به هدف به‌صورت خودکار</p></div>' + Icons.target + '</div>' +
-      (goals.length ? goals.slice(0, 3).map(function (g) {
-        var target = num(g.targetAmount), saved = num(g.currentAmount), pct = target > 0 ? Math.min(100, saved / target * 100) : num(g.progress);
-        return '<div class="mzn-goal-mini"><div><b>' + h(g.title) + '</b><span>' + (target > 0 ? money(Math.max(0, target - saved)) + ' مانده' : pct.toFixed(0) + '٪') + '</span></div><div class="mzn-progress"><i style="width:' + pct + '%"></i></div></div>';
-      }).join('') : '<p class="mzn-muted">هنوز هدفی ثبت نکرده‌ای.</p>') +
-      '</div></div>' +
       '<div class="mzn-panel"><div class="mzn-panel-head"><div><h3>یادآوری‌های نزدیک</h3><p>مواردی که نباید فراموش شوند</p></div><button class="mzn-text-btn" id="mzn-go-reminders">همه یادآورها</button></div>' +
       (rems.length ? rems.map(function (r) { return '<div class="mzn-list-row"><span class="mzn-list-icon">' + Icons.bell + '</span><div><b>' + h(r.title) + '</b><small>' + h(r.dateTime ? new Date(r.dateTime).toLocaleString('fa-IR-u-ca-persian') : 'بدون زمان') + '</small></div></div>'; }).join('') : '<p class="mzn-muted">یادآوری فعالی نداری.</p>') +
       '</div><div class="mzn-actions">' +
       button('mzn-go-calendar', 'تقویم مالی', Icons.calendar, 'btn btn-primary') +
       button('mzn-go-market', 'قیمت بازار', Icons.activity, 'btn btn-ghost') +
       button('mzn-go-assistant', 'دستیار میزان', Icons.sparkles, 'btn btn-ghost') +
-      '</div><div id="mzn-fin-overview" class="mzn-panel"><div class="mzn-muted">در حال دریافت خلاصه تعهدات مالی...</div></div>'
+      '</div><div id="mzn-fin-overview" class="mzn-panel mzn-fin-overview"><div class="mzn-muted">در حال دریافت خلاصه تعهدات مالی...</div></div>'
     );
     root.querySelector('#mzn-go-reminders').onclick = function () { App.navigate('reminders-db'); };
     root.querySelector('#mzn-go-calendar').onclick = function () { App.navigate('calendar'); };
