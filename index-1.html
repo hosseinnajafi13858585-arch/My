@@ -1428,15 +1428,20 @@ var Toast=(function(){
 })();
 var Modal=(function(){
   var _cur=null;
+  function syncParentModalLayer(open){
+    try{document.body.classList.toggle('mzn-modal-open',!!open);}catch(e){}
+    try{if(window.parent&&window.parent!==window&&window.parent.document.body)window.parent.document.body.classList.toggle('mzn-modal-open',!!open);}catch(e){}
+  }
   function close(){
     if(_cur){try{if(_cur.parentNode)_cur.parentNode.removeChild(_cur);}catch(e){}finally{_cur=null;document.body.style.overflow='';}}
+    syncParentModalLayer(false);
   }
   function open(opts){
     close();
     var bd=document.createElement('div');bd.className='modal-back';
     var szCls=opts.size==='xl'?' xl':opts.size==='lg'?' lg':'';
     bd.innerHTML='<div class="modal'+szCls+'" role="dialog" aria-modal="true"><div class="modal-hd"><h3>'+escH(opts.title||'')+'</h3><button class="mcls" aria-label="بستن">'+Icons.x+'</button></div><div class="modal-body">'+(opts.body||'')+'</div>'+(opts.footer?'<div class="modal-ft">'+opts.footer+'</div>':'')+'</div>';
-    document.body.appendChild(bd);document.body.style.overflow='hidden';_cur=bd;
+    document.body.appendChild(bd);document.body.style.overflow='hidden';_cur=bd;syncParentModalLayer(true);
     bd.addEventListener('click',function(e){if(e.target===bd)close();});
     var mcls=bd.querySelector('.mcls');if(mcls)mcls.addEventListener('click',close);
     if(opts.onMount)try{opts.onMount(bd);}catch(e){}
