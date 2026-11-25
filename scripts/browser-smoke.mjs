@@ -140,9 +140,9 @@ try{
   if(savedReminder!=='2026-11-26T06:00:00.000Z')throw new Error('Reminder time was not saved as Tehran time: '+savedReminder);
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('settings'));
   await appFrame.locator('#stor-body').waitFor({state:'visible'});
-  await appFrame.locator('#stor-body').getByText('داده‌های محلی میزان').waitFor({state:'visible',timeout:10000});
+  await appFrame.locator('#stor-body').getByText('داده‌های محلی میزان',{exact:true}).waitFor({state:'visible',timeout:10000});
   await appFrame.locator('#stor-ref').click();
-  await appFrame.locator('#stor-body').getByText('کش‌های برنامه').waitFor({state:'visible',timeout:10000});
+  await appFrame.locator('#stor-body').getByText('کش‌های برنامه',{exact:true}).waitFor({state:'visible',timeout:10000});
   await page.locator('.global-nav .nav-tab[data-page="more"]').click();
   const moreActive=await page.locator('.global-nav .nav-tab[data-page="more"]').getAttribute('class');
   if(!moreActive.includes('active'))throw new Error('Floating navigation did not switch pages');
