@@ -117,11 +117,15 @@ try{
   }
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('achievements'));
   await appFrame.locator('#add-goal').click();
+  const navSuppressed=await appFrame.locator('#app').evaluate(()=>window.parent.document.body.classList.contains('mzn-modal-open'));
+  if(!navSuppressed)throw new Error('Floating navigation should hide while a modal is open');
   await appFrame.locator('#gf-t').fill('تست آفلاین هدف');
   await appFrame.locator('#gf-target').fill('100000');
   await appFrame.locator('#gf-current').fill('25000');
   await appFrame.locator('#gf-sv').click();
   await appFrame.locator('#goal-list').getByText('تست آفلاین هدف').waitFor({state:'visible',timeout:10000});
+  const navRestored=await appFrame.locator('#app').evaluate(()=>!window.parent.document.body.classList.contains('mzn-modal-open'));
+  if(!navRestored)throw new Error('Floating navigation did not return after modal close');
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('reminders'));
   await appFrame.locator('#add-rem').click();
   await appFrame.locator('#rf-t').fill('تست ساعت تهران');
