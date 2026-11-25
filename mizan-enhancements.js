@@ -326,25 +326,6 @@
       GOLD_18K_IRR:'طلای ۱۸ عیار · هر گرم', COIN_EMAMI_IRR:'سکه امامی',
       USDT_IRR:'تتر'
     };
-    function normalize(payload){
-      var sourceRows=payload&&Array.isArray(payload.data)?payload.data:[];
-      var ids=Object.keys(labels),items=[];
-      ids.forEach(function(symbol){
-        var x=sourceRows.find(function(row){return row&&row.symbol===symbol;});
-        if(!x||x.price==null||!Number.isFinite(Number(x.price))||Number(x.price)<=0)return;
-        var currency=String(x.currency||'').toUpperCase(),price=Number(x.price);
-        if(currency==='IRR')price=price/10;
-        else if(currency!=='IRT'&&currency!=='TOMAN')return;
-        items.push({
-          id:symbol,name:x.name_fa||labels[symbol],price:price,currency:'IRT',
-          change_pct:x.change_pct==null?null:Number(x.change_pct),
-          updated_utc:x.timestamp_tehran||x.checked_at||x.timestamp||payload.meta&&payload.meta.published_at||null,
-          stale:!!x.stale,source:x.source||'Iran Market Data'
-        });
-      });
-      if(!items.length)throw new Error('ساختار پاسخ یا نمادهای بازار معتبر نیستند.');
-      return items;
-    }
     function renderItems(items,fromCache,publishedAt){
       var grid=root.querySelector('#mzn-market-grid'),status=root.querySelector('#mzn-market-status');
       if(!grid||!status)return;
@@ -368,7 +349,7 @@
         try{
           var response=await fetch(urls[n],{cache:'no-store'});
           if(!response.ok)throw new Error('پاسخ سرویس بازار: '+response.status);
-          var payload=await response.json(),items=normalize(payload);
+          var payload=await response.json(),items=normalizeMarketPayload(payload);
           marketCache=items;
           try{localStorage.setItem('mizan-market-cache-v2',JSON.stringify({items:items,publishedAt:payload.meta&&payload.meta.published_at,savedAt:new Date().toISOString()}));}catch(e){}
           renderItems(items,false,payload.meta&&payload.meta.published_at);
