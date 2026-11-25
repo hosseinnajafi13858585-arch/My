@@ -12,6 +12,7 @@
   var weatherLastRefresh = 0;
   var weatherLastPlace = '';
   var weatherWatchError = null;
+  var weatherRefreshTimer = null;
   var weatherListeners = [];
   if (window.Icons) {
     var iconAliases = { sparkles: 'star', fileText: 'info', image: 'activity', externalLink: 'upload', bellRing: 'bell', send: 'check', trendingUp: 'activity', arrowDownLeft: 'chevR', arrowUpRight: 'chevL', chevronRight: 'chevR', chevronLeft: 'chevL', users: 'user', shield: 'lock' };
@@ -602,6 +603,7 @@
         box.innerHTML='<div class="mzn-weather-empty"><span>📍</span><h3>دسترسی به موقعیت فعلی ممکن نشد</h3><p>'+(err&&err.code===1?'اجازه Location را در تنظیمات Safari برای این سایت فعال کن.':'اتصال موقعیت‌یابی را بررسی کن و دوباره تلاش کن.')+'</p><button class="btn btn-primary" id="mzn-weather-again">تلاش دوباره</button></div>';
         var again=box.querySelector('#mzn-weather-again');if(again)again.onclick=function(){startLiveLocation(true);};
       },{enableHighAccuracy:true,maximumAge:30000,timeout:20000});
+      if(weatherRefreshTimer===null)weatherRefreshTimer=window.setInterval(function(){if(!weatherLastCoords)return;weatherLastRefresh=Date.now();weatherListeners=weatherListeners.filter(function(fn){return fn._box&&fn._box.isConnected;});weatherListeners.forEach(function(fn){fn(weatherLastCoords);});},10*60*1000);
     }
     if(locBtn)locBtn.onclick=function(){startLiveLocation(true);};startLiveLocation(false);return root;}
   function installNumericKeypads(){function prepare(input){if(!input||input.dataset.mznNumericReady)return;if(input.type==='number'||input.dataset.numeric==='true'||input.classList.contains('money-input')){input.dataset.mznNumericReady='1';input.setAttribute('inputmode','decimal');input.setAttribute('pattern','[0-9]*');input.setAttribute('lang','en');input.setAttribute('dir','ltr');input.style.textAlign='left';}}document.querySelectorAll('input[type="number"],input[data-numeric="true"],input.money-input').forEach(prepare);new MutationObserver(function(records){records.forEach(function(r){r.addedNodes.forEach(function(n){if(n.nodeType!==1)return;if(n.matches&&n.matches('input'))prepare(n);if(n.querySelectorAll)n.querySelectorAll('input[type="number"],input[data-numeric="true"],input.money-input').forEach(prepare);});});}).observe(document.body,{childList:true,subtree:true});document.addEventListener('focusin',function(ev){prepare(ev.target);});}
