@@ -515,7 +515,7 @@
       if (!root.isConnected) { if (reminderTimer) clearInterval(reminderTimer); reminderTimer = null; return; }
       try {
         var s = await session(); if (!s.user) return;
-        var now = Date.now(), from = new Date(now - 60000).toISOString(), to = new Date(now + 60000).toISOString();
+        var now = Date.now(), from = new Date(now - 30*86400000).toISOString(), to = new Date(now + 60000).toISOString();
         var due = await s.client.from('mizan_reminders').select('id,title,due_at').eq('completed', false).gte('due_at', from).lte('due_at', to);
         if (due.error) throw due.error;
         await Promise.all((due.data || []).map(function (x) { return sendMizanNotification('یادآوری میزان', x.title, 'reminder:'+x.id, 'reminder', {reminder_id:x.id,due_at:x.due_at}); }));
