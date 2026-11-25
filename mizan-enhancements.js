@@ -61,6 +61,43 @@
     var j = Jalali.toJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
     return Jalali.fmt(j[0], j[1], j[2]);
   }
+  function tehranDateTimeParts(value) {
+    var date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return null;
+    var parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date);
+    var out = {};
+    parts.forEach(function (part) { if (part.type !== 'literal') out[part.type] = part.value; });
+    return out;
+  }
+  function tehranDateTimeToISO(dateISO, time) {
+    var date = String(dateISO || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+    var clock = String(time || '').match(/^(\\d{2}):(\\d{2})$/);
+    if (!date || !clock) return '';
+    var utc = Date.UTC(+date[1], +date[2] - 1, +date[3], +clock[1], +clock[2]) - 210 * 60000;
+    return new Date(utc).toISOString();
+  }
+  function formatTehranTime(value) {
+    var parts = tehranDateTimeParts(value);
+    return parts ? parts.hour + ':' + parts.minute : '—';
+  }
+  function shiftGregorianDate(dateISO, rule) {
+    var match = String(dateISO || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+    if (!match) return '';
+    var year = +match[1], month = +match[2], day = +match[3], date;
+    if (rule === 'daily' || rule === 'weekly') {
+      date = new Date(Date.UTC(year, month - 1, day));
+      date.setUTCDate(date.getUTCDate() + (rule === 'daily' ? 1 : 7));
+    } else if (rule === 'monthly') {
+      var targetMonth = new Date(Date.UTC(year, month, 1));
+      var lastDay = new Date(Date.UTC(targetMonth.getUTCFullYear(), targetMonth.getUTCMonth() + 1, 0)).getUTCDate();
+      date = new Date(Date.UTC(targetMonth.getUTCFullYear(), targetMonth.getUTCMonth(), Math.min(day, lastDay)));
+    } else if (rule === 'yearly') {
+      var targetYear = year + 1;
+      var yearLastDay = new Date(Date.UTC(targetYear, month, 0)).getUTCDate();
+      date = new Date(Date.UTC(targetYear, month - 1, Math.min(day, yearLastDay)));
+    } else return '';
+    return date.toISOString().slice(0, 10);
+  }
   function getClient() {
     if (!dbClient) {
       if (!window.supabase || !window.supabase.createClient) throw new Error('کتابخانه اتصال دیتابیس بارگذاری نشده است.');
@@ -368,19 +405,19 @@
         list.innerHTML = rows.map(function (x) {
           var due = x.due_date ? isoToJ(x.due_date) : 'بدون تاریخ';
           var overdue = !x.completed && x.due_date && x.due_date < jToISO(todayJ());
-          return '<div class="mzn-rem-row ' + (x.completed ? 'is-done' : overdue ? 'is-overdue' : '') + '"><div class="mzn-rem-main"><b>' + h(x.title) + '</b><small>' + h(due) + (x.due_at ? ' · ' + h(new Date(x.due_at).toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' })) : '') + ' · ' + h(x.priority) + '</small>' + (x.note ? '<small>' + h(x.note) + '</small>' : '') + '</div><div class="mzn-doc-actions"><button type="button" data-done="' + h(x.id) + '" title="انجام شد">' + Icons.check + '</button><button type="button" data-remove="' + h(x.id) + '" title="حذف">' + Icons.trash + '</button></div></div>';
+          return '<div class="mzn-rem-row ' + (x.completed ? 'is-done' : overdue ? 'is-overdue' : '') + '"><div class="mzn-rem-main"><b>' + h(x.title) + '</b><small>' + h(due) + (x.due_at ? ' · ' + h(formatTehranTime(x.due_at)) : '') + ' · ' + h(x.priority) + '</small>' + (x.note ? '<small>' + h(x.note) + '</small>' : '') + '</div><div class="mzn-doc-actions"><button type="button" data-done="' + h(x.id) + '" title="انجام شد">' + Icons.check + '</button><button type="button" data-remove="' + h(x.id) + '" title="حذف">' + Icons.trash + '</button></div></div>';
         }).join('');
         list.querySelectorAll('[data-done]').forEach(function (b) {
           b.onclick = async function () {
             var row = rows.find(function (x) { return x.id === b.dataset.done; });
             if (!row.completed && row.repeat_rule !== 'none' && row.due_at) {
-              var next = new Date(row.due_at);
-              if (row.repeat_rule === 'daily') next.setDate(next.getDate() + 1);
-              else if (row.repeat_rule === 'weekly') next.setDate(next.getDate() + 7);
-              else if (row.repeat_rule === 'monthly') next.setMonth(next.getMonth() + 1);
-              else if (row.repeat_rule === 'yearly') next.setFullYear(next.getFullYear() + 1);
-              var nextDate = next.getFullYear() + '-' + String(next.getMonth() + 1).padStart(2, '0') + '-' + String(next.getDate()).padStart(2, '0');
-              var repeatInsert = await s.client.from('mizan_reminders').insert({ user_id: s.user.id, title: row.title, note: row.note, due_at: next.toISOString(), due_date: nextDate, priority: row.priority, repeat_rule: row.repeat_rule });
+              var parts = tehranDateTimeParts(row.due_at);
+              var baseDate = row.due_date || (parts ? parts.year + '-' + parts.month + '-' + parts.day : '');
+              var nextDate = shiftGregorianDate(baseDate, row.repeat_rule);
+              var nextTime = parts ? parts.hour + ':' + parts.minute : '09:00';
+              var nextDueAt = tehranDateTimeToISO(nextDate, nextTime);
+              if (!nextDate || !nextDueAt) { notify('زمان تکرار یادآوری معتبر نیست.'); return; }
+              var repeatInsert = await s.client.from('mizan_reminders').insert({ user_id: s.user.id, title: row.title, note: row.note, due_at: nextDueAt, due_date: nextDate, priority: row.priority, repeat_rule: row.repeat_rule });
               if (repeatInsert.error) { notify('ساخت یادآوری بعدی انجام نشد: ' + repeatInsert.error.message); return; }
             }
             var up = await s.client.from('mizan_reminders').update({ completed: !row.completed, completed_at: row.completed ? null : new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', row.id);
@@ -406,10 +443,11 @@
         var s = await session();
         if (!s.user) throw new Error('ابتدا وارد حساب مالی شو.');
         var iso = jToISO(date);
-        var local = new Date(iso + 'T' + time + ':00');
+        var dueAt = tehranDateTimeToISO(iso, time);
+        if (!dueAt) throw new Error('زمان یادآوری معتبر نیست.');
         var ins = await s.client.from('mizan_reminders').insert({
           user_id: s.user.id, title: title, note: root.querySelector('#mzn-rem-note').value.trim(),
-          due_date: iso, due_at: local.toISOString(), priority: root.querySelector('#mzn-rem-priority').value,
+          due_date: iso, due_at: dueAt, priority: root.querySelector('#mzn-rem-priority').value,
           repeat_rule: root.querySelector('#mzn-rem-repeat').value
         });
         if (ins.error) throw ins.error;
