@@ -145,8 +145,8 @@ try{
   await appFrame.locator('#stor-body').getByText('داده‌های محلی میزان',{exact:true}).waitFor({state:'visible',timeout:10000});
   await appFrame.locator('#stor-ref').click();
   await appFrame.locator('#stor-body').getByText('کش‌های برنامه',{exact:true}).waitFor({state:'visible',timeout:10000});
-  await page.locator('.global-nav .nav-tab[data-page="more"]').click();
-  const moreActive=await page.locator('.global-nav .nav-tab[data-page="more"]').getAttribute('class');
+  await appFrame.locator('.global-nav .nav-tab[data-page="more"]').click();
+  const moreActive=await appFrame.locator('.global-nav .nav-tab[data-page="more"]').getAttribute('class');
   if(!moreActive.includes('active'))throw new Error('Floating navigation did not switch pages');
   const themeBefore=await appFrame.locator('#app').evaluate(()=>document.documentElement.getAttribute('data-theme'));
   await appFrame.locator('#tb-theme').click();
