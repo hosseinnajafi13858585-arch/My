@@ -613,6 +613,29 @@
   function installNumericKeypads(){function prepare(input){if(!input||input.dataset.mznNumericReady)return;if(input.type==='number'||input.dataset.numeric==='true'||input.classList.contains('money-input')){input.dataset.mznNumericReady='1';input.setAttribute('inputmode','decimal');input.setAttribute('pattern','[0-9]*');input.setAttribute('lang','en');input.setAttribute('dir','ltr');input.style.textAlign='left';}}document.querySelectorAll('input[type="number"],input[data-numeric="true"],input.money-input').forEach(prepare);new MutationObserver(function(records){records.forEach(function(r){r.addedNodes.forEach(function(n){if(n.nodeType!==1)return;if(n.matches&&n.matches('input'))prepare(n);if(n.querySelectorAll)n.querySelectorAll('input[type="number"],input[data-numeric="true"],input.money-input').forEach(prepare);});});}).observe(document.body,{childList:true,subtree:true});document.addEventListener('focusin',function(ev){prepare(ev.target);});}
 
   function installSeasonalThemes(){if(window.__mizanSeasonalInstalled)return;window.__mizanSeasonalInstalled=true;function parts(date,zone,opts){var out={};new Intl.DateTimeFormat('en-US',Object.assign({timeZone:zone},opts)).formatToParts(date).forEach(function(p){if(p.type!=='literal')out[p.type]=p.value;});return out;}function apply(){var now=new Date(),g=parts(now,'Asia/Tehran',{year:'numeric',month:'numeric',day:'numeric',hour:'numeric',hourCycle:'h23'}),month=Number(g.month),day=Number(g.day),hour=Number(g.hour),theme='';if(month===12&&((day===24&&hour>=18)||day===25||day===26||(day===27&&hour<18)))theme='christmas';try{var j=parts(now,'Asia/Tehran',{calendar:'persian',year:'numeric',month:'numeric',day:'numeric'});if(Number(j.month)===1&&Number(j.day)>=1&&Number(j.day)<=10)theme='nowruz';}catch(err){}var docs=[document];try{if(window.parent&&window.parent!==window&&window.parent.document!==document)docs.push(window.parent.document);}catch(err){}docs.forEach(function(doc){var root=doc.documentElement;if(!root)return;root.classList.remove('mzn-theme-christmas','mzn-theme-nowruz');if(theme)root.classList.add('mzn-theme-'+theme);var meta=doc.querySelector('meta[name="theme-color"]');if(meta)meta.setAttribute('content',theme==='christmas'?'#173b32':theme==='nowruz'?'#2f8058':'#236b4d');});}apply();window.__mizanSeasonalTimer=window.setInterval(apply,60000);}
+
+  function installSeasonalDecorations(){
+    if(window.__mizanSeasonalDecorationsInstalled)return;
+    window.__mizanSeasonalDecorationsInstalled=true;
+    var css='#mzn-seasonal-greeting{position:fixed;left:50%;bottom:calc(82px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:2147482001;display:flex;align-items:center;gap:10px;max-width:min(92vw,520px);padding:10px 15px;border:1px solid rgba(255,255,255,.28);border-radius:18px;box-shadow:0 12px 35px rgba(0,0,0,.18);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);font-family:inherit;font-size:13px;font-weight:700;line-height:1.7;direction:rtl;text-align:center;pointer-events:none;animation:mznSeasonGreetingIn .65s cubic-bezier(.2,.8,.2,1) both}#mzn-seasonal-greeting .mzn-seasonal-main{display:flex;flex-direction:column;gap:2px}#mzn-seasonal-greeting small{font-size:10px;font-weight:500;opacity:.86}#mzn-seasonal-greeting .mzn-seasonal-symbol{font-size:27px;line-height:1;filter:drop-shadow(0 3px 5px rgba(0,0,0,.18))}#mzn-seasonal-greeting .mzn-seasonal-items{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 8px;font-size:10px;font-weight:600;opacity:.95}#mzn-seasonal-greeting.mzn-seasonal-christmas{color:#fff;background:linear-gradient(120deg,rgba(24,73,53,.96),rgba(145,43,53,.96));border-color:rgba(255,255,255,.22)}#mzn-seasonal-greeting.mzn-seasonal-nowruz{color:#234c35;background:linear-gradient(120deg,rgba(247,251,232,.97),rgba(218,239,203,.97));border-color:rgba(94,151,87,.35)}#mzn-seasonal-greeting:after{content:"✦  ❄  ✦";position:absolute;top:-11px;left:14px;font-size:12px;opacity:.8;animation:mznSeasonSparkle 2.8s ease-in-out infinite}#mzn-seasonal-greeting.mzn-seasonal-nowruz:after{content:"✿  🌸  ✿";animation:mznSeasonPetal 3.8s ease-in-out infinite}@keyframes mznSeasonGreetingIn{from{opacity:0;translate:0 12px}to{opacity:1;translate:0 0}}@keyframes mznSeasonSparkle{50%{transform:translateY(-5px) rotate(12deg);opacity:1}}@keyframes mznSeasonPetal{50%{transform:translateY(-6px) rotate(-8deg);opacity:1}}@media(max-width:430px){#mzn-seasonal-greeting{bottom:calc(76px + env(safe-area-inset-bottom,0px));max-width:94vw;padding:8px 11px;font-size:12px}#mzn-seasonal-greeting .mzn-seasonal-items{font-size:9px;gap:2px 6px}}@media(prefers-reduced-motion:reduce){#mzn-seasonal-greeting,#mzn-seasonal-greeting:after{animation:none!important}}';
+    function getDocs(){var docs=[document];try{if(window.parent&&window.parent!==window&&window.parent.document!==document)docs.push(window.parent.document);}catch(e){}return docs;}
+    function sync(doc){
+      if(!doc||!doc.documentElement||!doc.body)return;
+      var root=doc.documentElement,theme=root.classList.contains('mzn-theme-nowruz')?'nowruz':root.classList.contains('mzn-theme-christmas')?'christmas':'';
+      var banner=doc.getElementById('mzn-seasonal-greeting');
+      if(!theme){if(banner)banner.remove();return;}
+      if(!banner){banner=doc.createElement('aside');banner.id='mzn-seasonal-greeting';banner.setAttribute('role','status');banner.setAttribute('aria-live','polite');doc.body.appendChild(banner);}
+      banner.className='mzn-seasonal-'+theme;
+      if(theme==='christmas'){
+        banner.innerHTML='<span class="mzn-seasonal-symbol" aria-hidden="true">🎄</span><span class="mzn-seasonal-main"><strong>کریسمس مبارک! 🎅🏻</strong><small>امیدواریم روزهات پر از آرامش، لبخند و اتفاق‌های خوب باشه.</small></span><span class="mzn-seasonal-symbol" aria-hidden="true">🎁</span>';
+      }else{
+        banner.innerHTML='<span class="mzn-seasonal-symbol" aria-hidden="true">🌷</span><span class="mzn-seasonal-main"><strong>نوروز پیروز! 🌱</strong><small>سال نو، شروعی تازه برای روزهایی روشن‌تر.</small><span class="mzn-seasonal-items"><span>🌱 سبزه</span><span>🍎 سیب</span><span>🧄 سیر</span><span>🌿 سنجد</span><span>🍯 سمنو</span><span>🟥 سماق</span><span>🍶 سرکه</span></span></span><span class="mzn-seasonal-symbol" aria-hidden="true">🐟</span>';
+      }
+    }
+    getDocs().forEach(function(doc){if(!doc.getElementById('mzn-seasonal-decor-style')){var style=doc.createElement('style');style.id='mzn-seasonal-decor-style';style.textContent=css;(doc.head||doc.documentElement).appendChild(style);}sync(doc);});
+    window.__mizanSeasonalDecorTimer=window.setInterval(function(){getDocs().forEach(sync);},60000);
+  }
+
   function renderMore() {
     var items = [
       ['today', 'امروز و ثبت سریع', Icons.home, 'ساعت کار، فروش و ثبت روزانه'],
@@ -792,6 +815,7 @@
   installGoalSync();
   installMotionStyles();
   installSeasonalThemes();
+  installSeasonalDecorations();
   installNumericKeypads();
   installNavigation();
   document.addEventListener('DOMContentLoaded', function () { setTimeout(syncAllGoals, 1800); installMizanSchedulers(); });
