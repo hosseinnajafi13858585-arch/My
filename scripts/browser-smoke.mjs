@@ -150,12 +150,11 @@ try{
     return{saveRejected:saveResult===false,settlementRejected:settleResult===false,deleteRejected:deleteResult===false,notLocked:!Store.isMonthSettled(year,mi),dataUnchanged:localStorage.getItem(key)===before};
   });
   if(!quotaSafety.saveRejected||!quotaSafety.settlementRejected||!quotaSafety.deleteRejected||!quotaSafety.notLocked||!quotaSafety.dataUnchanged)throw new Error('Storage quota failures were not safely detected: '+JSON.stringify(quotaSafety));
+  await appFrame.locator('#app').evaluate(()=>{window.__mznConfirmCalled=false;window.confirm=function(){window.__mznConfirmCalled=true;return true;};});
   await appFrame.locator('#app').evaluate(()=>new Promise(resolve=>setTimeout(resolve,100)));
-  const settlementDialogPromise=page.waitForEvent('dialog');
   await appFrame.locator('#md-settle').click();
-  const settlementDialog=await settlementDialogPromise;
-  if(settlementDialog.type()!=='confirm')throw new Error('Month settlement did not request confirmation');
-  await settlementDialog.accept();
+  const settlementConfirmCalled=await appFrame.locator('#app').evaluate(()=>window.__mznConfirmCalled===true);
+  if(!settlementConfirmCalled)throw new Error('Month settlement confirmation was not requested');
   await appFrame.locator('#md-settle').waitFor({state:'detached',timeout:10000});
   const settlement=await appFrame.locator('#app').evaluate(()=>{
     const year=1405,mi=8,locked=Store.isMonthSettled(year,mi),saved=Store.loadMonth(year,mi),stats=Payroll.compute(saved),changed=Object.assign({},saved,{fixedSalary:999999999});
