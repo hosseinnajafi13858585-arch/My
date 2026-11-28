@@ -2019,7 +2019,7 @@ var UI=(function(){
     setTimeout(function(){
       var pr=document.getElementById('md-pr');if(pr)pr.addEventListener('click',function(){window.print();});
       var dl=document.getElementById('md-dl');if(dl)dl.addEventListener('click',function(){App.deleteMonthConfirm(state.year,state.mi);});
-      var settle=document.getElementById('md-settle');if(settle)settle.addEventListener('click',function(){if(!window.confirm('بعد از تسویه، همه اطلاعات این ماه قفل می‌شود و امکان افزودن، ویرایش، حذف یا تغییر حقوق وجود ندارد. حقوق خالص ثبت‌شده: '+Fmt.money(stats.netSalary)+' تومان. آیا تسویه کامل انجام شود؟'))return;if(!Store.settleMonth(state.year,state.mi)){Toast.error('تسویه انجام نشد؛ دوباره تلاش کنید');return;}Toast.success('تسویه ماه ثبت و اطلاعات قفل شد');refresh();});
+      var settle=document.getElementById('md-settle');if(settle)settle.addEventListener('click',function(){if(!window.confirm('بعد از تسویه، همه اطلاعات این ماه قفل می‌شود و امکان افزودن، ویرایش، حذف یا تغییر حقوق وجود ندارد. حقوق خالص ثبت‌شده: '+Fmt.money(stats.netSalary)+' تومان. آیا تسویه کامل انجام شود؟'))return;if(!Store.settleMonth(state.year,state.mi)){Toast.error('تسویه انجام نشد؛ دوباره تلاش کنید');return;}Toast.success('تسویه ماه ثبت و اطلاعات قفل شد');App.openMonth(state.year,state.mi);});
       if(settled)secs.querySelectorAll('.toolbar').forEach(function(x){x.remove();});
       secs.querySelectorAll('.coll-hd').forEach(function(h){h.addEventListener('click',function(){h.closest('.collapsible').classList.toggle('closed');});});
       ['hours','websiteSales','storeSales','leaves','expenses','deductions','benefits'].forEach(function(tp){
