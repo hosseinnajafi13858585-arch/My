@@ -120,6 +120,8 @@ try{
     if(sectionCount<1)throw new Error('App route did not render: '+route);
     const routeText=await appFrame.locator('#page-content').innerText();
     if(routeText.includes('خطا در بارگذاری صفحه'))throw new Error('App route threw a render error: '+route);
+    const mobileRouteOverflow=await appFrame.locator('html').evaluate(el=>el.scrollWidth>el.clientWidth+1);
+    if(mobileRouteOverflow)throw new Error('Horizontal overflow on mobile route: '+route);
   }
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('today'));
   const monthFixture=await appFrame.locator('#app').evaluate(()=>{
@@ -216,8 +218,18 @@ try{
   if(themeBefore===themeAfter)throw new Error('Theme toggle did not change the app theme');
   await appFrame.locator('#tb-theme').click();
 
+  await page.setViewportSize({width:1365,height:900});
+  const desktopOverflowRoutes=[];
+  for(const route of routes){
+    await appFrame.locator('#app').evaluate((el,name)=>window.App.navigate(name),route);
+    const overflow=await appFrame.locator('html').evaluate(el=>el.scrollWidth>el.clientWidth+1);
+    if(overflow)desktopOverflowRoutes.push(route);
+  }
+  if(desktopOverflowRoutes.length)throw new Error('Horizontal overflow on desktop routes: '+desktopOverflowRoutes.join(', '));
+  await page.setViewportSize({width:390,height:844});
+  await appFrame.locator('#app').evaluate(()=>window.App.navigate('today'));
   if(pageErrors.length) throw new Error('Browser runtime errors: '+pageErrors.join(' | '));
-  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,missingSnapshotBlocked:true,authenticatedOfflineDashboard:true,modalGuardInstalled,appOverflow:false,visibleButtons,pageSections,routeCount:routes.length,monthlyDateOrder:true,monthlyEditIndexPreserved:true,monthSettlementLock:true,monthStorageFailureSafety:true,goalCreate:true,reminderTehranTime:true,storageMonitor:true,navInteraction:true,themeToggle:true,pageErrors},null,2));
+  console.log(JSON.stringify({result:'passed',viewport:'390x844',desktopViewport:'1365x900',mobileRouteOverflow:false,desktopRouteOverflow:false,manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,missingSnapshotBlocked:true,authenticatedOfflineDashboard:true,modalGuardInstalled,appOverflow:false,visibleButtons,pageSections,routeCount:routes.length,monthlyDateOrder:true,monthlyEditIndexPreserved:true,monthSettlementLock:true,monthStorageFailureSafety:true,goalCreate:true,reminderTehranTime:true,storageMonitor:true,navInteraction:true,themeToggle:true,pageErrors},null,2));
 } finally {
   if(browser) await browser.close();
   await new Promise(resolve=>server.close(resolve));
