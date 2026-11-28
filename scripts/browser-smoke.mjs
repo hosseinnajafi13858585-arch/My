@@ -153,8 +153,10 @@ try{
   await appFrame.locator('#app').evaluate(()=>{window.__mznConfirmCalled=false;window.confirm=function(){window.__mznConfirmCalled=true;return true;};});
   await appFrame.locator('#app').evaluate(()=>new Promise(resolve=>setTimeout(resolve,100)));
   await appFrame.locator('#md-settle').click();
-  const settlementConfirmCalled=await appFrame.locator('#app').evaluate(()=>window.__mznConfirmCalled===true);
-  if(!settlementConfirmCalled)throw new Error('Month settlement confirmation was not requested');
+  await appFrame.locator('#app').evaluate(()=>new Promise(resolve=>setTimeout(resolve,100)));
+  const settlementAction=await appFrame.locator('#app').evaluate(()=>({confirmCalled:window.__mznConfirmCalled===true,locked:Store.isMonthSettled(1405,8),message:document.body.innerText.slice(-350)}));
+  if(!settlementAction.confirmCalled||!settlementAction.locked)throw new Error('Month settlement click did not persist the lock: '+JSON.stringify(settlementAction));
+  await appFrame.locator('#app').evaluate(()=>window.App.openMonth(1405,8));
   await appFrame.locator('#md-settle').waitFor({state:'detached',timeout:10000});
   const settlement=await appFrame.locator('#app').evaluate(()=>{
     const year=1405,mi=8,locked=Store.isMonthSettled(year,mi),saved=Store.loadMonth(year,mi),stats=Payroll.compute(saved),changed=Object.assign({},saved,{fixedSalary:999999999});
