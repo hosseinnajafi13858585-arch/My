@@ -50,7 +50,7 @@ assert.match(read('index.html'),/auth\.getSession\(\)/,'Offline entry must requi
 assert.match(read('index.html'),/beforeinstallprompt/,'Android install prompt handler missing');
 assert.match(read('index.html'),/apple-mobile-web-app-capable/,'iOS web app metadata missing');
 assert.match(read('index-1.html'),/mizan-premium-motion-v1/,'App motion layer missing');
-assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=38/,'Enhancement cache version mismatch');
+assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=39/,'Enhancement cache version mismatch');
 const appHtml=read('index-1.html');
 assert.match(appHtml,/function syncParentModalLayer\(open\)/,'Modal layer synchronization missing');
 assert.match(appHtml,/syncParentModalLayer\(true\)/,'Opening a modal must suppress floating navigation');
@@ -65,6 +65,11 @@ assert.match(appHtml,/table==='personal_debt'\?'updated_at':'created_at'/,'Perso
 assert.match(appHtml,/payload\.updated_at=new Date\(\)\.toISOString\(\)/,'Personal debt updates must refresh updated_at');
 assert.match(appHtml,/parentPatch\.updated_at=new Date\(\)\.toISOString\(\)/,'Debt payments must refresh updated_at');
 const enhancementHtml=read('mizan-enhancements.js');
+assert.match(enhancementHtml,/function installSeasonalDecorations\\(\\)/,'Seasonal greeting and decoration installer missing');
+assert.match(enhancementHtml,/کریسمس مبارک/,'Christmas greeting missing');
+assert.match(enhancementHtml,/نوروز پیروز/,'Nowruz greeting missing');
+assert.match(enhancementHtml,/سبزه/,'Nowruz Haft-Seen details missing');
+assert.match(enhancementHtml,/prefers-reduced-motion:reduce/,'Seasonal animations must respect reduced-motion preference');
 assert.match(appHtml,/function scheduleRowsHtml\(count,total,firstDate\)/,'Custom installment schedule generator missing');
 assert.match(appHtml,/fip-amount-/,'Per-installment amount input missing');
 assert.match(appHtml,/fip-due-/,'Per-installment Jalali due date input missing');
