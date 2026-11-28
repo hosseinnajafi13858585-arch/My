@@ -142,11 +142,15 @@ try{
     function pair(extra){return [{date:late,amount:200,notes:'late',hours:8,startTime:'10:00',endTime:'18:00',type:'full',reason:'late',...extra},{date:early,amount:100,notes:'early',hours:7,startTime:'09:00',endTime:'16:00',type:'full',reason:'early',...extra}];}
     data.hours=pair();data.websiteSales=pair();data.storeSales=pair();data.leaves=pair();data.expenses=pair();data.deductions=pair();data.benefits=pair();
     const saved=Store.saveMonth(year,mi,data);
+    window.__mznSettleListenerReady=false;window.__mznNativeAddEventListener=EventTarget.prototype.addEventListener;EventTarget.prototype.addEventListener=function(type,listener,options){if(this&&this.id==='md-settle'&&type==='click')window.__mznSettleListenerReady=true;return window.__mznNativeAddEventListener.call(this,type,listener,options);};
     App.openMonth(year,mi);
     return{year,mi,key,previous,early,late,earlyLabel:Fmt.fullDate(early),lateLabel:Fmt.fullDate(late),saved};
   });
   if(!monthFixture.saved)throw new Error('Could not seed isolated monthly date-order fixture');
   await appFrame.locator('#md-settle').waitFor({state:'visible',timeout:10000});
+  await appFrame.locator('#app').evaluate(()=>new Promise(resolve=>{var started=Date.now();function poll(){if(window.__mznSettleListenerReady||Date.now()-started>5000){EventTarget.prototype.addEventListener=window.__mznNativeAddEventListener;delete window.__mznNativeAddEventListener;resolve();}else setTimeout(poll,10);}poll();}));
+  const settleListenerReady=await appFrame.locator('#app').evaluate(()=>window.__mznSettleListenerReady===true);
+  if(!settleListenerReady)throw new Error('Month settlement button click handler was not attached');
   const monthOrder=await appFrame.locator('#app').evaluate(()=>{
     const tables=[...document.querySelectorAll('#page-content table.dt')];
     return{tables:tables.length,rows:tables.map(table=>[...table.querySelectorAll('tbody tr')].map(row=>row.cells[0]?.textContent?.trim()||'')),editIndices:tables.map(table=>table.querySelector('tbody tr:first-child button.ed')?.getAttribute('data-ei')||null)};
