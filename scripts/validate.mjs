@@ -52,6 +52,7 @@ assert.match(read('index.html'),/apple-mobile-web-app-capable/,'iOS web app meta
 assert.match(read('index-1.html'),/mizan-premium-motion-v1/,'App motion layer missing');
 assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=42/,'Enhancement cache version mismatch');
 const appHtml=read('index-1.html');
+assert.ok(read('index.html').includes('@supabase/supabase-js@2.119.2')&&appHtml.includes('@supabase/supabase-js@2.119.2')&&read('sw.js').includes('@supabase/supabase-js@2.119.2'),'Supabase browser SDK version must be pinned consistently');
 assert.match(appHtml,/function syncParentModalLayer\(open\)/,'Modal layer synchronization missing');
 assert.match(appHtml,/syncParentModalLayer\(true\)/,'Opening a modal must suppress floating navigation');
 assert.match(appHtml,/syncParentModalLayer\(false\)/,'Closing a modal must restore floating navigation');
