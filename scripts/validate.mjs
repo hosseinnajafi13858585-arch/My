@@ -54,6 +54,7 @@ assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=42/,'Enhancement ca
 const appHtml=read('index-1.html');
 assert.ok(read('index.html').includes('@supabase/supabase-js@2.119.2')&&appHtml.includes('@supabase/supabase-js@2.119.2')&&read('sw.js').includes('@supabase/supabase-js@2.119.2'),'Supabase browser SDK version must be pinned consistently');
 assert.ok(read('index.html').includes('function mergeStartupKeys(')&&read('index.html').includes('mergeStartupKeys(remoteKeys,localKeys,baseKeys,remoteRowExists)'),'Offline startup must merge local changes against the last synced snapshot');
+assert.ok(read('index.html').includes('Object.keys(remoteKeys).length===0)remoteExists=false'),'Empty cloud snapshots must not overwrite a populated local snapshot');
 assert.ok(read('index.html').includes('if(!Object.keys(localKeys).length&&Object.keys(baseKeys).length)'),'Empty local storage must not be interpreted as deleting all cloud data');
 assert.ok(read('index.html').includes('if(!result.data){var recoveryKeys=safeKeys()'),'Missing cloud row must be recovered from local data');
 assert.match(appHtml,/function syncParentModalLayer\(open\)/,'Modal layer synchronization missing');
