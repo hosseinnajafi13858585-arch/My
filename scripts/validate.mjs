@@ -65,7 +65,7 @@ assert.match(appHtml,/table==='personal_debt'\?'updated_at':'created_at'/,'Perso
 assert.match(appHtml,/payload\.updated_at=new Date\(\)\.toISOString\(\)/,'Personal debt updates must refresh updated_at');
 assert.match(appHtml,/parentPatch\.updated_at=new Date\(\)\.toISOString\(\)/,'Debt payments must refresh updated_at');
 const enhancementHtml=read('mizan-enhancements.js');
-assert.match(enhancementHtml,/function installSeasonalDecorations\\(\\)/,'Seasonal greeting and decoration installer missing');
+assert.ok(enhancementHtml.includes('function installSeasonalDecorations()'),'Seasonal greeting and decoration installer missing');
 assert.match(enhancementHtml,/کریسمس مبارک/,'Christmas greeting missing');
 assert.match(enhancementHtml,/نوروز پیروز/,'Nowruz greeting missing');
 assert.match(enhancementHtml,/سبزه/,'Nowruz Haft-Seen details missing');
