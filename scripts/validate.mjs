@@ -50,7 +50,7 @@ assert.match(read('index.html'),/auth\.getSession\(\)/,'Offline entry must requi
 assert.match(read('index.html'),/beforeinstallprompt/,'Android install prompt handler missing');
 assert.match(read('index.html'),/apple-mobile-web-app-capable/,'iOS web app metadata missing');
 assert.match(read('index-1.html'),/mizan-premium-motion-v1/,'App motion layer missing');
-assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=39/,'Enhancement cache version mismatch');
+assert.match(read('index-1.html'),/mizan-enhancements\.js\?v=40/,'Enhancement cache version mismatch');
 const appHtml=read('index-1.html');
 assert.match(appHtml,/function syncParentModalLayer\(open\)/,'Modal layer synchronization missing');
 assert.match(appHtml,/syncParentModalLayer\(true\)/,'Opening a modal must suppress floating navigation');
