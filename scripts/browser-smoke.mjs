@@ -122,6 +122,31 @@ try{
     if(routeText.includes('خطا در بارگذاری صفحه'))throw new Error('App route threw a render error: '+route);
   }
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('today'));
+  const monthFixture=await appFrame.locator('#app').evaluate(()=>{
+    const today=Jalali.today(),year=today[0],month=today[1],mi=month-1,key=Store.mkey(year,mi),previous=localStorage.getItem(key);
+    const early=Jalali.fmt(year,month,1),late=Jalali.fmt(year,month,2),data=Store.blank();
+    function pair(extra){return [{date:late,amount:200,notes:'late',hours:8,startTime:'10:00',endTime:'18:00',type:'full',reason:'late',...extra},{date:early,amount:100,notes:'early',hours:7,startTime:'09:00',endTime:'16:00',type:'full',reason:'early',...extra}];}
+    data.hours=pair();data.websiteSales=pair();data.storeSales=pair();data.leaves=pair();data.expenses=pair();data.deductions=pair();data.benefits=pair();
+    const saved=Store.saveMonth(year,mi,data);
+    App.openMonth(year,mi);
+    return{year,mi,key,previous,early,late,earlyLabel:Fmt.fullDate(early),lateLabel:Fmt.fullDate(late),saved};
+  });
+  if(!monthFixture.saved)throw new Error('Could not seed isolated monthly date-order fixture');
+  await appFrame.locator('#md-settle').waitFor({state:'visible',timeout:10000});
+  const monthOrder=await appFrame.locator('#app').evaluate(()=>{
+    const tables=[...document.querySelectorAll('#page-content table.dt')];
+    return{tables:tables.length,rows:tables.map(table=>[...table.querySelectorAll('tbody tr')].map(row=>row.cells[0]?.textContent?.trim()||'')),editIndices:tables.map(table=>table.querySelector('tbody tr:first-child button.ed')?.getAttribute('data-ei')||null)};
+  });
+  if(monthOrder.tables!==7||monthOrder.rows.some(rows=>rows.length!==2)||monthOrder.rows.some(rows=>rows[0]!==monthFixture.earlyLabel||rows[1]!==monthFixture.lateLabel)||monthOrder.editIndices.some(index=>index!=='1'))throw new Error('Monthly records are not date-sorted or original edit indices were not preserved: '+JSON.stringify(monthOrder));
+  page.once('dialog',async dialog=>{if(dialog.type()==='confirm')await dialog.accept();else await dialog.dismiss();});
+  await appFrame.locator('#md-settle').click();
+  await appFrame.locator('#md-settle').waitFor({state:'detached',timeout:10000});
+  const settlement=await appFrame.locator('#app').evaluate(({year,mi})=>{
+    const locked=Store.isMonthSettled(year,mi),saved=Store.loadMonth(year,mi),stats=Payroll.compute(saved),changed=Object.assign({},saved,{fixedSalary:999999999});
+    return{locked,saveBlocked:Store.saveMonth(year,mi,changed)===false,deleteBlocked:Store.deleteMonth(year,mi)===false,snapshotNet:stats.netSalary,toolbarHidden:!document.getElementById('add-hours'),editHidden:!document.querySelector('table.dt button.ed'),settleHidden:!document.getElementById('md-settle')};
+  },monthFixture);
+  if(!settlement.locked||!settlement.saveBlocked||!settlement.deleteBlocked||!settlement.toolbarHidden||!settlement.editHidden||!settlement.settleHidden)throw new Error('Month settlement lock failed: '+JSON.stringify(settlement));
+  await appFrame.locator('#app').evaluate(({key,previous})=>{if(previous===null)localStorage.removeItem(key);else localStorage.setItem(key,previous);window.App.navigate('today');},monthFixture);
   const marketFixture={meta:{unit:'toman',stale:false,updated_at:'2026-11-25T08:00:00.000Z'},data:[
     {symbol:'USD_IRR_FREE',name_fa:'دلار آمریکا',currency:'IRT',price:285000,change_pct:1,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
     {symbol:'EUR_IRR_FREE',name_fa:'یورو',currency:'IRT',price:313000,change_pct:.5,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
@@ -182,7 +207,7 @@ try{
   await appFrame.locator('#tb-theme').click();
 
   if(pageErrors.length) throw new Error('Browser runtime errors: '+pageErrors.join(' | '));
-  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,missingSnapshotBlocked:true,authenticatedOfflineDashboard:true,modalGuardInstalled,appOverflow:false,visibleButtons,pageSections,routeCount:routes.length,goalCreate:true,reminderTehranTime:true,storageMonitor:true,navInteraction:true,themeToggle:true,pageErrors},null,2));
+  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,missingSnapshotBlocked:true,authenticatedOfflineDashboard:true,modalGuardInstalled,appOverflow:false,visibleButtons,pageSections,routeCount:routes.length,monthlyDateOrder:true,monthlyEditIndexPreserved:true,monthSettlementLock:true,goalCreate:true,reminderTehranTime:true,storageMonitor:true,navInteraction:true,themeToggle:true,pageErrors},null,2));
 } finally {
   if(browser) await browser.close();
   await new Promise(resolve=>server.close(resolve));
