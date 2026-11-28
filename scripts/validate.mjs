@@ -64,6 +64,8 @@ assert.ok(appHtml.includes('LS.get(key,null)===expected'),'Month writes must be 
 assert.ok(appHtml.includes('return LS.get(key,null)===null'),'Month deletion must be read-back verified');
 assert.match(appHtml,/window\.__mizanModalGuardInstalled=true/,'Modal guard initialization missing');
 assert.match(appHtml,/api\.__mizanGuardInstalled=true/,'Modal API guard marker missing');
+assert.ok(appHtml.includes("Toast.success('تسویه ماه ثبت و اطلاعات قفل شد');App.openMonth(state.year,state.mi);"),'Settlement must rerender the month through the App API');
+assert.ok(!appHtml.includes("Toast.success('تسویه ماه ثبت و اطلاعات قفل شد');refresh();"),'Settlement must not call an undefined refresh function');
 assert.match(appHtml,/body\.mzn-modal-open \.global-nav/,'Parent floating navigation must be hidden while a modal is open');
 const dateHelpers=appHtml.match(/function isoToTehranDateTimeInput[\s\S]*?(?=function openReminderForm)/)?.[0];
 assert.ok(dateHelpers,'Tehran datetime helpers are missing');
