@@ -1007,9 +1007,9 @@ var Store=(function(){
     }catch(e){return blank();}
   }
   function isMonthSettled(y,mi,u){var saved=LS.getJ(mkey(y,mi,u),null);return !!(saved&&saved._settlement&&saved._settlement.locked);}
-  function saveMonth(y,mi,d,u){try{if(isMonthSettled(y,mi,u))return false;LS.setJ(mkey(y,mi,u),d);return true;}catch(e){return false;}}
-  function settleMonth(y,mi,u){try{if(isMonthSettled(y,mi,u))return false;var data=loadMonth(y,mi,u),snapshot=Payroll.compute(data,loadSettings(u));data._settlement={locked:true,settledAt:new Date().toISOString(),stats:snapshot};LS.setJ(mkey(y,mi,u),data);return true;}catch(e){console.warn('Month settlement failed',e);return false;}}
-  function deleteMonth(y,mi,u){if(isMonthSettled(y,mi,u))return false;LS.del(mkey(y,mi,u));return true;}
+  function saveMonth(y,mi,d,u){try{if(isMonthSettled(y,mi,u))return false;var key=mkey(y,mi,u),expected=JSON.stringify(d);LS.setJ(key,d);return LS.get(key,null)===expected;}catch(e){console.warn('Month save verification failed',e);return false;}}
+  function settleMonth(y,mi,u){try{if(isMonthSettled(y,mi,u))return false;var key=mkey(y,mi,u),data=loadMonth(y,mi,u),snapshot=Payroll.compute(data,loadSettings(u));data._settlement={locked:true,settledAt:new Date().toISOString(),stats:snapshot};var expected=JSON.stringify(data);LS.setJ(key,data);return LS.get(key,null)===expected&&isMonthSettled(y,mi,u);}catch(e){console.warn('Month settlement failed',e);return false;}}
+  function deleteMonth(y,mi,u){if(isMonthSettled(y,mi,u))return false;var key=mkey(y,mi,u);LS.del(key);return LS.get(key,null)===null;}
   function settingsKey(u){return userPfx(u)+'settings';}
   function loadSettings(u){
     var raw=LS.getJ(settingsKey(u),{});
@@ -2753,6 +2753,6 @@ document.addEventListener('DOMContentLoaded',function(){
   App.init();
 },false);
 </script>
-<script src="./mizan-enhancements.js?v=41"></script>
+<script src="./mizan-enhancements.js?v=42"></script>
 </body>
 </html>
