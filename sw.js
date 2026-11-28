@@ -1,6 +1,6 @@
 'use strict';
-const SHELL_CACHE='mizan-shell-v59';
-const RUNTIME_CACHE='mizan-runtime-v59';
+const SHELL_CACHE='mizan-shell-v60';
+const RUNTIME_CACHE='mizan-runtime-v60';
 const SHELL_FILES=[
   './index.html',
   './index-1.html',
@@ -10,7 +10,7 @@ const SHELL_FILES=[
   './apple-touch-icon.png'
 ];
 const CDN_HOSTS=new Set(['cdn.jsdelivr.net','fonts.googleapis.com','fonts.gstatic.com']);
-const CRITICAL_CDN_FILES=['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'];
+const CRITICAL_CDN_FILES=['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2'];
 self.addEventListener('install',event=>{
   event.waitUntil(Promise.all([
     caches.open(SHELL_CACHE).then(cache=>cache.addAll(SHELL_FILES)),
