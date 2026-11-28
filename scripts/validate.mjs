@@ -55,6 +55,7 @@ const appHtml=read('index-1.html');
 assert.ok(read('index.html').includes('@supabase/supabase-js@2.119.2')&&appHtml.includes('@supabase/supabase-js@2.119.2')&&read('sw.js').includes('@supabase/supabase-js@2.119.2'),'Supabase browser SDK version must be pinned consistently');
 assert.ok(read('index.html').includes('function mergeStartupKeys(')&&read('index.html').includes('mergeStartupKeys(remoteKeys,localKeys,baseKeys,remoteRowExists)'),'Offline startup must merge local changes against the last synced snapshot');
 assert.ok(read('index.html').includes('if(!Object.keys(localKeys).length&&Object.keys(baseKeys).length)'),'Empty local storage must not be interpreted as deleting all cloud data');
+assert.ok(read('index.html').includes('if(!result.data){var recoveryKeys=safeKeys()'),'Missing cloud row must be recovered from local data');
 assert.match(appHtml,/function syncParentModalLayer\(open\)/,'Modal layer synchronization missing');
 assert.match(appHtml,/syncParentModalLayer\(true\)/,'Opening a modal must suppress floating navigation');
 assert.match(appHtml,/syncParentModalLayer\(false\)/,'Closing a modal must restore floating navigation');
