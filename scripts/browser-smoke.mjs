@@ -176,7 +176,7 @@ try{
   await appFrame.locator('#md-settle').waitFor({state:'detached',timeout:10000});
   const settlement=await appFrame.locator('#app').evaluate(()=>{
     const year=1405,mi=8,locked=Store.isMonthSettled(year,mi),saved=Store.loadMonth(year,mi),stats=Payroll.compute(saved),changed=Object.assign({},saved,{fixedSalary:999999999});
-    return{locked,saveBlocked:Store.saveMonth(year,mi,changed)===false,deleteBlocked:Store.deleteMonth(year,mi)===false,snapshotNet:stats.netSalary,toolbarHidden:!document.getElementById('add-hours'),editHidden:!document.querySelector('table.dt button.ed'),settleHidden:!document.getElementById('md-settle')};
+    return{locked,saveBlocked:Store.saveMonth(year,mi,changed)===false,deleteBlocked:Store.deleteMonth(year,mi)===false,snapshotNet:stats.netSalary,toolbarHidden:![...document.querySelectorAll('#page-content button[id^="add-"]')].some(button=>button.getClientRects().length>0)&&![...document.querySelectorAll('#page-content .toolbar')].some(toolbar=>toolbar.getClientRects().length>0),editHidden:!document.querySelector('table.dt button.ed'),settleHidden:!document.getElementById('md-settle')};
   });
   if(!settlement.locked||!settlement.saveBlocked||!settlement.deleteBlocked||!settlement.toolbarHidden||!settlement.editHidden||!settlement.settleHidden)throw new Error('Month settlement lock failed: '+JSON.stringify(settlement));
   await appFrame.locator('#app').evaluate(()=>{const f=window.__mznMonthFixture;if(f){if(f.previous===null)localStorage.removeItem(f.key);else localStorage.setItem(f.key,f.previous);delete window.__mznMonthFixture;}window.App.navigate('today');});
