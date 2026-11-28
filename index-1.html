@@ -1469,10 +1469,23 @@ var Toast=(function(){
 var Modal=(function(){
   var _cur=null;
   function syncParentModalLayer(open){
-    try{document.body.classList.toggle('mzn-modal-open',!!open);}catch(e){}
-    try{if(window.parent&&window.parent!==window&&window.parent.document.body)window.parent.document.body.classList.toggle('mzn-modal-open',!!open);}catch(e){}
+    var active=!!open;
+    try{document.body.classList.toggle('mzn-modal-open',active);}catch(e){}
+    try{
+      if(window.parent&&window.parent!==window){
+        var parentDoc=window.parent.document;
+        if(parentDoc.body)parentDoc.body.classList.toggle('mzn-modal-open',active);
+        if(parentDoc.head&&!parentDoc.getElementById('mzn-parent-modal-guard-style')){
+          var guardStyle=parentDoc.createElement('style');
+          guardStyle.id='mzn-parent-modal-guard-style';
+          guardStyle.textContent='body.mzn-modal-open .global-nav{opacity:0!important;visibility:hidden!important;pointer-events:none!important;transform:translateY(14px)!important}body.mzn-modal-open .global-nav *{pointer-events:none!important}';
+          parentDoc.head.appendChild(guardStyle);
+        }
+      }
+    }catch(e){}
   }
   window.__mizanModalLayerSyncInstalled=true;
+  window.__mizanModalGuardInstalled=true;
   window.addEventListener('pagehide',function(){syncParentModalLayer(false);});
   function close(){
     if(_cur){try{if(_cur.parentNode)_cur.parentNode.removeChild(_cur);}catch(e){}finally{_cur=null;document.body.style.overflow='';}}
@@ -1490,7 +1503,9 @@ var Modal=(function(){
     return bd;
   }
   function isOpen(){return!!_cur;}
-  return{open:open,close:close,isOpen:isOpen};
+  var api={open:open,close:close,isOpen:isOpen};
+  api.__mizanGuardInstalled=true;
+  return api;
 })();
 function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 var DatePicker=(function(){
@@ -2738,6 +2753,6 @@ document.addEventListener('DOMContentLoaded',function(){
   App.init();
 },false);
 </script>
-<script src="./mizan-enhancements.js?v=40"></script>
+<script src="./mizan-enhancements.js?v=41"></script>
 </body>
 </html>
