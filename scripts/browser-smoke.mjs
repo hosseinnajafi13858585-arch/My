@@ -138,6 +138,16 @@ try{
     return{tables:tables.length,rows:tables.map(table=>[...table.querySelectorAll('tbody tr')].map(row=>row.cells[0]?.textContent?.trim()||'')),editIndices:tables.map(table=>table.querySelector('tbody tr:first-child button.ed')?.getAttribute('data-ei')||null)};
   });
   if(monthOrder.tables!==7||monthOrder.rows.some(rows=>rows.length!==2)||monthOrder.rows.some(rows=>rows[0]!==monthFixture.earlyLabel||rows[1]!==monthFixture.lateLabel)||monthOrder.editIndices.some(index=>index!=='1'))throw new Error('Monthly records are not date-sorted or original edit indices were not preserved: '+JSON.stringify(monthOrder));
+  const quotaSafety=await appFrame.locator('#app').evaluate(({year,mi})=>{
+    const key=Store.mkey(year,mi),before=localStorage.getItem(key),originalSet=Storage.prototype.setItem,originalRemove=Storage.prototype.removeItem;
+    let saveResult,settleResult,deleteResult;
+    Storage.prototype.setItem=function(k,v){if(k===key)throw new DOMException('Quota exceeded','QuotaExceededError');return originalSet.call(this,k,v);};
+    try{saveResult=Store.saveMonth(year,mi,Object.assign(Store.loadMonth(year,mi),{fixedSalary:999999999}));settleResult=Store.settleMonth(year,mi);}finally{Storage.prototype.setItem=originalSet;}
+    Storage.prototype.removeItem=function(k){if(k===key)throw new DOMException('Storage unavailable','QuotaExceededError');return originalRemove.call(this,k);};
+    try{deleteResult=Store.deleteMonth(year,mi);}finally{Storage.prototype.removeItem=originalRemove;}
+    return{saveRejected:saveResult===false,settlementRejected:settleResult===false,deleteRejected:deleteResult===false,notLocked:!Store.isMonthSettled(year,mi),dataUnchanged:localStorage.getItem(key)===before};
+  },monthFixture);
+  if(!quotaSafety.saveRejected||!quotaSafety.settlementRejected||!quotaSafety.deleteRejected||!quotaSafety.notLocked||!quotaSafety.dataUnchanged)throw new Error('Storage quota failures were not safely detected: '+JSON.stringify(quotaSafety));
   page.once('dialog',async dialog=>{if(dialog.type()==='confirm')await dialog.accept();else await dialog.dismiss();});
   await appFrame.locator('#md-settle').click();
   await appFrame.locator('#md-settle').waitFor({state:'detached',timeout:10000});
@@ -207,7 +217,7 @@ try{
   await appFrame.locator('#tb-theme').click();
 
   if(pageErrors.length) throw new Error('Browser runtime errors: '+pageErrors.join(' | '));
-  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,missingSnapshotBlocked:true,authenticatedOfflineDashboard:true,modalGuardInstalled,appOverflow:false,visibleButtons,pageSections,routeCount:routes.length,monthlyDateOrder:true,monthlyEditIndexPreserved:true,monthSettlementLock:true,goalCreate:true,reminderTehranTime:true,storageMonitor:true,navInteraction:true,themeToggle:true,pageErrors},null,2));
+  console.log(JSON.stringify({result:'passed',viewport:'390x844',manifest:true,appleTouchIcon:true,passwordToggle:true,recoveryMode:true,loginMotion:motionName,androidInstallPrompt:true,iosAddToHomeScreen:true,serviceWorkerControlled:controlled,criticalLibraryCached:cacheState.criticalLibraryCached,offlineUnauthenticatedGate:true,offlineAuthenticatedSession:true,missingSnapshotBlocked:true,authenticatedOfflineDashboard:true,modalGuardInstalled,appOverflow:false,visibleButtons,pageSections,routeCount:routes.length,monthlyDateOrder:true,monthlyEditIndexPreserved:true,monthSettlementLock:true,monthStorageFailureSafety:true,goalCreate:true,reminderTehranTime:true,storageMonitor:true,navInteraction:true,themeToggle:true,pageErrors},null,2));
 } finally {
   if(browser) await browser.close();
   await new Promise(resolve=>server.close(resolve));
