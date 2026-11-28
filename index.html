@@ -199,6 +199,7 @@ html.mzn-theme-nowruz .panel button{background:linear-gradient(120deg,#2f8058,#9
     remoteKeys=remoteKeys&&typeof remoteKeys==='object'?remoteKeys:{};
     localKeys=localKeys&&typeof localKeys==='object'?localKeys:{};
     var hasBase=!!(baseKeys&&typeof baseKeys==='object'&&!Array.isArray(baseKeys)),base=hasBase?baseKeys:{},merged={};
+    if(remoteExists&&hasBase&&Object.keys(base).length>0&&Object.keys(remoteKeys).length===0)remoteExists=false;
     Object.keys(remoteKeys).forEach(function(k){merged[k]=remoteKeys[k];});
     if(!hasBase){Object.keys(localKeys).forEach(function(k){if(!Object.prototype.hasOwnProperty.call(merged,k))merged[k]=localKeys[k];});return merged;}
     if(!remoteExists)Object.keys(base).forEach(function(k){merged[k]=base[k];});
