@@ -31,6 +31,7 @@ if(!ext.includes('weatherLastCoords.accuracy')||!ext.includes('navigator.geoloca
 if(!ext.includes('api.coingecko.com/api/v3/simple/price')||!ext.includes("if(bitcoin)items.push(bitcoin)"))throw Error('Bitcoin market quote missing');
 if(!html.includes('mzn-home-weather-wrap')||!ext.includes('homeWeather.appendChild(weatherCard)'))throw Error('Home weather placement missing');
 if(!html.includes('window.__mizanModalGuardInstalled=true')||!html.includes('api.__mizanGuardInstalled=true')||!html.includes('mzn-parent-modal-guard-style')||!html.includes('body.mzn-modal-open .global-nav'))throw Error('Modal navigation guard missing');
+if(!entryHtml.includes('@supabase/supabase-js@2.119.2')||!html.includes('@supabase/supabase-js@2.119.2')||!sw.includes('@supabase/supabase-js@2.119.2'))throw Error('Supabase browser SDK must stay pinned to a tested version');
 if(!entryHtml.includes('mzn-theme-christmas')||!entryHtml.includes('mzn-theme-nowruz'))throw Error('Login seasonal theme missing');
 if(!ext.includes('function installSeasonalDecorations()')||!ext.includes('کریسمس مبارک')||!ext.includes('نوروز پیروز')||!ext.includes('سبزه')||!ext.includes('prefers-reduced-motion:reduce')||!ext.includes('mznTreeSway')||!ext.includes('mznBloom'))throw Error('Seasonal greetings, Haft-Seen decorations or reduced-motion support missing');
 if(!html.includes('settleMonth:settleMonth')||!html.includes('md-settle')||!html.includes('isMonthSettled')||!html.includes('localeCompare(String(b.item.date'))throw Error('Monthly settlement lock or date sorting missing');
