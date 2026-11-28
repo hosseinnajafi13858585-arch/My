@@ -32,7 +32,7 @@ try{
     const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
     const localWins=merge({a:'base-a',b:'base-b',c:'remote-c'},{a:'offline-a'},{a:'base-a',b:'base-b'},true);
     const remoteWinsUnchanged=merge({a:'remote-a',c:'remote-c'},{a:'base-a',b:'offline-b'},{a:'base-a'},true);
-    const missingRemoteRow=merge({}, {a:'base-a'}, {a:'base-a',b:'base-b'}, false);
+    const missingRemoteRow=merge({}, {a:'base-a',b:'base-b'}, {a:'base-a',b:'base-b'}, false);
     const noSnapshot=merge({a:'remote-a'},{a:'legacy-a',b:'legacy-b'},null,true);
     const emptyLocalExisting=merge({a:'remote-a'}, {}, {a:'base-a'}, true);
     const emptyLocalMissing=merge({}, {}, {a:'base-a'}, false);
