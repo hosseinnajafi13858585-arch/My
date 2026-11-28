@@ -29,7 +29,7 @@ try{
   await page.locator('#email').waitFor({state:'visible',timeout:15000});
   const cloudMergeChecks=await page.evaluate(()=>{
     const merge=window.MizanMergeStartupKeys;
-    const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+    const eq=(a,b)=>{const sort=o=>Object.fromEntries(Object.keys(o).sort().map(k=>[k,o[k]]));return JSON.stringify(sort(a))===JSON.stringify(sort(b));};
     const localWins=merge({a:'base-a',b:'base-b',c:'remote-c'},{a:'offline-a'},{a:'base-a',b:'base-b'},true);
     const remoteWinsUnchanged=merge({a:'remote-a',c:'remote-c'},{a:'base-a',b:'offline-b'},{a:'base-a'},true);
     const missingRemoteRow=merge({}, {a:'base-a',b:'base-b'}, {a:'base-a',b:'base-b'}, false);
