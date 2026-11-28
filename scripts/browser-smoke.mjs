@@ -27,6 +27,18 @@ try{
   page.on('pageerror',e=>pageErrors.push(e.message));
   await page.goto('http://127.0.0.1:4173/index.html',{waitUntil:'domcontentloaded'});
   await page.locator('#email').waitFor({state:'visible',timeout:15000});
+  const cloudMergeChecks=await page.evaluate(()=>{
+    const merge=window.MizanMergeStartupKeys;
+    const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+    const localWins=merge({a:'base-a',b:'base-b',c:'remote-c'},{a:'offline-a'},{a:'base-a',b:'base-b'},true);
+    const remoteWinsUnchanged=merge({a:'remote-a',c:'remote-c'},{a:'base-a',b:'offline-b'},{a:'base-a'},true);
+    const missingRemoteRow=merge({}, {a:'base-a'}, {a:'base-a',b:'base-b'}, false);
+    const noSnapshot=merge({a:'remote-a'},{a:'legacy-a',b:'legacy-b'},null,true);
+    const emptyLocalExisting=merge({a:'remote-a'}, {}, {a:'base-a'}, true);
+    const emptyLocalMissing=merge({}, {}, {a:'base-a'}, false);
+    return{localEditsAndDeletions:eq(localWins,{a:'offline-a',c:'remote-c'}),remoteUnchangedKeysPreserved:eq(remoteWinsUnchanged,{a:'remote-a',b:'offline-b',c:'remote-c'}),missingRemoteRestoresSnapshot:eq(missingRemoteRow,{a:'base-a',b:'base-b'}),noSnapshotLegacyMerge:eq(noSnapshot,{a:'remote-a',b:'legacy-b'}),emptyLocalDoesNotDeleteRemote:eq(emptyLocalExisting,{a:'remote-a'}),emptyLocalMissingRowRestoresSnapshot:eq(emptyLocalMissing,{a:'base-a'})};
+  });
+  if(Object.values(cloudMergeChecks).some(value=>!value))throw new Error('Offline/cloud merge regression: '+JSON.stringify(cloudMergeChecks));
   await page.locator('#password').waitFor({state:'visible'});
   if(await page.title()!=='Mizan') throw new Error('Login page title did not load');
   const iconLink=await page.locator('link[rel="apple-touch-icon"]').getAttribute('href');
