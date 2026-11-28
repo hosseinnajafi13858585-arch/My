@@ -195,26 +195,44 @@ html.mzn-theme-nowruz .panel button{background:linear-gradient(120deg,#2f8058,#9
   function payloadSignature(p){var keys=p&&p.keys&&typeof p.keys==='object'?p.keys:{},sorted={};Object.keys(keys).sort().forEach(function(k){sorted[k]=keys[k];});return JSON.stringify({schema:1,ownerUsername:(p&&p.ownerUsername)||'owner',keys:sorted});}
   async function saveCloud(payload){var r=await supa().from('app_data').upsert({user_id:owner.id,payload:payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(r.error)throw r.error;try{localStorage.setItem('mizan-cloud-snapshot-'+owner.id,JSON.stringify(payload));}catch(e){console.warn('Offline snapshot could not be saved',e);}}
   function installPasskeyRegisterButton(){var top=document.querySelector('.top');if(!top||document.getElementById('register-passkey'))return;var b=document.createElement('button');b.type='button';b.id='register-passkey';b.className='passkey-btn';b.textContent='ثبت Face ID';b.addEventListener('click',async function(){if(!supa().auth.registerPasskey){say('نسخه کتابخانه ورود بیومتریک را پشتیبانی نمی‌کند.');return;}b.disabled=true;try{var r=await supa().auth.registerPasskey();if(r.error)throw r.error;say('ورود بیومتریک این دستگاه ثبت شد.',true);}catch(e){say((e.message||'ثبت Face ID ناموفق بود.')+(String(e.message||'').indexOf('passkey_disabled')>=0?' — باید Passkeys را در Supabase فعال کنی.':''));}finally{b.disabled=false;}});var logout=document.getElementById('logout');top.insertBefore(b,logout||null);}
+  function mergeStartupKeys(remoteKeys,localKeys,baseKeys,remoteExists){
+    remoteKeys=remoteKeys&&typeof remoteKeys==='object'?remoteKeys:{};
+    localKeys=localKeys&&typeof localKeys==='object'?localKeys:{};
+    var hasBase=!!(baseKeys&&typeof baseKeys==='object'&&!Array.isArray(baseKeys)),base=hasBase?baseKeys:{},merged={};
+    Object.keys(remoteKeys).forEach(function(k){merged[k]=remoteKeys[k];});
+    if(!hasBase){Object.keys(localKeys).forEach(function(k){if(!Object.prototype.hasOwnProperty.call(merged,k))merged[k]=localKeys[k];});return merged;}
+    if(!remoteExists)Object.keys(base).forEach(function(k){merged[k]=base[k];});
+    var baseCount=Object.keys(base).length,localCount=Object.keys(localKeys).length;
+    if(baseCount>0&&localCount===0)return merged;
+    var all={};Object.keys(base).forEach(function(k){all[k]=true;});Object.keys(localKeys).forEach(function(k){all[k]=true;});
+    Object.keys(all).forEach(function(k){
+      var had=Object.prototype.hasOwnProperty.call(base,k),has=Object.prototype.hasOwnProperty.call(localKeys,k);
+      var changed=had!==has||(had&&has&&base[k]!==localKeys[k]);
+      if(changed){if(has)merged[k]=localKeys[k];else delete merged[k];}
+    });
+    return merged;
+  }
+  window.MizanMergeStartupKeys=mergeStartupKeys;
   async function prepareWorkspace(){
     var sessionResult=await supa().auth.getSession();
     owner=sessionResult.data&&sessionResult.data.session?sessionResult.data.session.user:null;
     if(!owner)throw new Error('نشست ورود معتبر نیست؛ برای ادامه دوباره وارد شو.');
-    var remote={},offlineMode=!navigator.onLine;
+    var remote={},remoteRowExists=false,offlineMode=!navigator.onLine,localSnapshot=null;
     if(!offlineMode){
       var verified=false;
       try{verified=await verifyOwner(owner);}catch(verifyError){offlineMode=true;console.warn('Mizan owner verification unavailable; checking trusted local snapshot',verifyError);}
       if(!offlineMode&&!verified){await supa().auth.signOut();throw new Error('این حساب مالک این برنامه نیست و اجازه ورود ندارد.');}
     }
-    if(!offlineMode){try{var r=await supa().from('app_data').select('payload').eq('user_id',owner.id).maybeSingle();if(r.error)throw r.error;remote=r.data&&r.data.payload&&typeof r.data.payload==='object'?r.data.payload:{};}catch(networkError){offlineMode=true;console.warn('Mizan is switching to offline snapshot',networkError);}}
-    if(offlineMode){try{remote=JSON.parse(localStorage.getItem('mizan-cloud-snapshot-'+owner.id)||'null')||{};}catch(snapshotError){remote={};}if(!remote||!remote.keys||typeof remote.keys!=='object')throw new Error('برای ورود آفلاین هنوز نسخه‌ای از اطلاعات روی این دستگاه ذخیره نشده است. یک‌بار با اینترنت وارد میزان شو تا نسخه آفلاین آماده شود.');}
+    if(!offlineMode){try{var r=await supa().from('app_data').select('payload').eq('user_id',owner.id).maybeSingle();if(r.error)throw r.error;remoteRowExists=!!r.data;remote=r.data&&r.data.payload&&typeof r.data.payload==='object'?r.data.payload:{};}catch(networkError){offlineMode=true;console.warn('Mizan is switching to offline snapshot',networkError);}}
+    try{localSnapshot=JSON.parse(localStorage.getItem('mizan-cloud-snapshot-'+owner.id)||'null');}catch(snapshotReadError){localSnapshot=null;}
+    if(offlineMode){remote=localSnapshot||{};remoteRowExists=false;if(!remote||!remote.keys||typeof remote.keys!=='object')throw new Error('برای ورود آفلاین هنوز نسخه‌ای از اطلاعات روی این دستگاه ذخیره نشده است. یک‌بار با اینترنت وارد میزان شو تا نسخه آفلاین آماده شود.');}
     var remoteKeys=remote.keys&&typeof remote.keys==='object'?remote.keys:{};
-    ownerUsername=String(remote.ownerUsername||legacyOwnerName()||'owner').replace(/[^a-zA-Z0-9_]/g,'').slice(0,32)||'owner';
+    var baseKeys=localSnapshot&&localSnapshot.keys&&typeof localSnapshot.keys==='object'?localSnapshot.keys:(offlineMode?remoteKeys:null);
+    ownerUsername=String(remote.ownerUsername||(localSnapshot&&localSnapshot.ownerUsername)||legacyOwnerName()||'owner').replace(/[^a-zA-Z0-9_]/g,'').slice(0,32)||'owner';
     var metadata=owner&&owner.user_metadata?owner.user_metadata:{};
     visibleUsername=String(metadata.username||metadata.user_name||(owner.email?owner.email.split('@')[0]:ownerUsername)).replace(/[^a-zA-Z0-9_.-]/g,'').slice(0,32)||ownerUsername;
     displayName=String(metadata.full_name||metadata.name||'').trim();
-    var localKeys=safeKeys(),merged={};
-    if(offlineMode&&Object.keys(localKeys).length){Object.keys(localKeys).forEach(function(k){merged[k]=localKeys[k];});}
-    else{Object.keys(remoteKeys).forEach(function(k){merged[k]=remoteKeys[k];});Object.keys(localKeys).forEach(function(k){if(!Object.prototype.hasOwnProperty.call(merged,k))merged[k]=localKeys[k];});}
+    var localKeys=safeKeys(),merged=mergeStartupKeys(remoteKeys,localKeys,baseKeys,remoteRowExists);
     applyKeys(merged);seedLegacySession();
     var payload={schema:1,ownerUsername:ownerUsername,keys:merged};
     if(!offlineMode){
@@ -259,6 +277,7 @@ html.mzn-theme-nowruz .panel button{background:linear-gradient(120deg,#2f8058,#9
         var remote=result.data.payload&&typeof result.data.payload==='object'?result.data.payload:{};
         var remoteKeys=remote.keys&&typeof remote.keys==='object'?remote.keys:{};
         var localKeys=safeKeys(),baseKeys=lastSyncedPayload.keys||{},changed=[],all={};
+        if(!Object.keys(localKeys).length&&Object.keys(baseKeys).length){applyKeys(baseKeys);localKeys=baseKeys;}
         Object.keys(baseKeys).forEach(function(k){all[k]=true;});
         Object.keys(localKeys).forEach(function(k){all[k]=true;});
         Object.keys(all).forEach(function(k){
