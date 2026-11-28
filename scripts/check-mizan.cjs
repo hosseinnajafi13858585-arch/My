@@ -6,6 +6,8 @@ const entryHtml=fs.readFileSync('index.html','utf8');
 const ext=fs.readFileSync('mizan-enhancements.js','utf8');
 const sw=fs.readFileSync('sw.js','utf8');
 const manifest=JSON.parse(fs.readFileSync('manifest.webmanifest','utf8'));
+const dbSecurityMigration=fs.readFileSync('supabase/migrations/20261128082344_secure_mizan_notifications_and_owner_claim.sql','utf8');
+if(!dbSecurityMigration.includes('REVOKE ALL PRIVILEGES ON TABLE public.mizan_notifications FROM anon')||!dbSecurityMigration.includes('REVOKE TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLE public.mizan_notifications FROM authenticated')||!dbSecurityMigration.includes('GRANT SELECT (singleton_id) ON TABLE public.app_owner TO anon'))throw Error('Database notification and owner-claim security migration missing');
 let inlineCount=0;
 for(const [file,source] of [['index.html',entryHtml],['index-1.html',html]]){
   for(const match of source.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){
