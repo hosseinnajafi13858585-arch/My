@@ -273,7 +273,7 @@ html.mzn-theme-nowruz .panel button{background:linear-gradient(120deg,#2f8058,#9
       try{
         var result=await supa().from('app_data').select('payload').eq('user_id',owner.id).maybeSingle();
         if(result.error)throw result.error;
-        if(!result.data)throw new Error('رکورد فضای ابری پیدا نشد.');
+        if(!result.data){var recoveryKeys=safeKeys(),recoveryPayload={schema:1,ownerUsername:ownerUsername,keys:recoveryKeys};await saveCloud(recoveryPayload);lastSyncedPayload=recoveryPayload;lastSignature=JSON.stringify(recoveryPayload);return;}
         var remote=result.data.payload&&typeof result.data.payload==='object'?result.data.payload:{};
         var remoteKeys=remote.keys&&typeof remote.keys==='object'?remote.keys:{};
         var localKeys=safeKeys(),baseKeys=lastSyncedPayload.keys||{},changed=[],all={};
