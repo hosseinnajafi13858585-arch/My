@@ -123,7 +123,7 @@ try{
   }
   await appFrame.locator('#app').evaluate(()=>window.App.navigate('today'));
   const monthFixture=await appFrame.locator('#app').evaluate(()=>{
-    const today=Jalali.today(),year=today[0],month=today[1],mi=month-1,key=Store.mkey(year,mi),previous=localStorage.getItem(key);
+    const year=1405,mi=8,month=mi+1,key=Store.mkey(year,mi),previous=localStorage.getItem(key);window.__mznMonthFixture={key,previous};
     const early=Jalali.fmt(year,month,1),late=Jalali.fmt(year,month,2),data=Store.blank();
     function pair(extra){return [{date:late,amount:200,notes:'late',hours:8,startTime:'10:00',endTime:'18:00',type:'full',reason:'late',...extra},{date:early,amount:100,notes:'early',hours:7,startTime:'09:00',endTime:'16:00',type:'full',reason:'early',...extra}];}
     data.hours=pair();data.websiteSales=pair();data.storeSales=pair();data.leaves=pair();data.expenses=pair();data.deductions=pair();data.benefits=pair();
@@ -139,7 +139,7 @@ try{
   });
   if(monthOrder.tables!==7||monthOrder.rows.some(rows=>rows.length!==2)||monthOrder.rows.some(rows=>rows[0]!==monthFixture.earlyLabel||rows[1]!==monthFixture.lateLabel)||monthOrder.editIndices.some(index=>index!=='1'))throw new Error('Monthly records are not date-sorted or original edit indices were not preserved: '+JSON.stringify(monthOrder));
   const quotaSafety=await appFrame.locator('#app').evaluate(()=>{
-    const today=Jalali.today(),year=today[0],mi=today[1]-1,key=Store.mkey(year,mi),before=localStorage.getItem(key),originalSet=Storage.prototype.setItem,originalRemove=Storage.prototype.removeItem;
+    const year=1405,mi=8,key=Store.mkey(year,mi),before=localStorage.getItem(key),originalSet=Storage.prototype.setItem,originalRemove=Storage.prototype.removeItem;
     let saveResult,settleResult,deleteResult;
     Storage.prototype.setItem=function(k,v){if(k===key)throw new DOMException('Quota exceeded','QuotaExceededError');return originalSet.call(this,k,v);};
     try{saveResult=Store.saveMonth(year,mi,Object.assign(Store.loadMonth(year,mi),{fixedSalary:999999999}));settleResult=Store.settleMonth(year,mi);}finally{Storage.prototype.setItem=originalSet;}
@@ -152,11 +152,11 @@ try{
   await appFrame.locator('#md-settle').click();
   await appFrame.locator('#md-settle').waitFor({state:'detached',timeout:10000});
   const settlement=await appFrame.locator('#app').evaluate(()=>{
-    const today=Jalali.today(),year=today[0],mi=today[1]-1,locked=Store.isMonthSettled(year,mi),saved=Store.loadMonth(year,mi),stats=Payroll.compute(saved),changed=Object.assign({},saved,{fixedSalary:999999999});
+    const year=1405,mi=8,locked=Store.isMonthSettled(year,mi),saved=Store.loadMonth(year,mi),stats=Payroll.compute(saved),changed=Object.assign({},saved,{fixedSalary:999999999});
     return{locked,saveBlocked:Store.saveMonth(year,mi,changed)===false,deleteBlocked:Store.deleteMonth(year,mi)===false,snapshotNet:stats.netSalary,toolbarHidden:!document.getElementById('add-hours'),editHidden:!document.querySelector('table.dt button.ed'),settleHidden:!document.getElementById('md-settle')};
   });
   if(!settlement.locked||!settlement.saveBlocked||!settlement.deleteBlocked||!settlement.toolbarHidden||!settlement.editHidden||!settlement.settleHidden)throw new Error('Month settlement lock failed: '+JSON.stringify(settlement));
-  await appFrame.locator('#app').evaluate(({key,previous})=>{if(previous===null)localStorage.removeItem(key);else localStorage.setItem(key,previous);window.App.navigate('today');},{key:monthFixture.key,previous:monthFixture.previous});
+  await appFrame.locator('#app').evaluate(()=>{const f=window.__mznMonthFixture;if(f){if(f.previous===null)localStorage.removeItem(f.key);else localStorage.setItem(f.key,f.previous);delete window.__mznMonthFixture;}window.App.navigate('today');});
   const marketFixture={meta:{unit:'toman',stale:false,updated_at:'2026-11-25T08:00:00.000Z'},data:[
     {symbol:'USD_IRR_FREE',name_fa:'دلار آمریکا',currency:'IRT',price:285000,change_pct:1,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
     {symbol:'EUR_IRR_FREE',name_fa:'یورو',currency:'IRT',price:313000,change_pct:.5,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
