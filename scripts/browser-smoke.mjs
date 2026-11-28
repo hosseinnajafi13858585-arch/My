@@ -138,25 +138,25 @@ try{
     return{tables:tables.length,rows:tables.map(table=>[...table.querySelectorAll('tbody tr')].map(row=>row.cells[0]?.textContent?.trim()||'')),editIndices:tables.map(table=>table.querySelector('tbody tr:first-child button.ed')?.getAttribute('data-ei')||null)};
   });
   if(monthOrder.tables!==7||monthOrder.rows.some(rows=>rows.length!==2)||monthOrder.rows.some(rows=>rows[0]!==monthFixture.earlyLabel||rows[1]!==monthFixture.lateLabel)||monthOrder.editIndices.some(index=>index!=='1'))throw new Error('Monthly records are not date-sorted or original edit indices were not preserved: '+JSON.stringify(monthOrder));
-  const quotaSafety=await appFrame.locator('#app').evaluate(({year,mi})=>{
-    const key=Store.mkey(year,mi),before=localStorage.getItem(key),originalSet=Storage.prototype.setItem,originalRemove=Storage.prototype.removeItem;
+  const quotaSafety=await appFrame.locator('#app').evaluate(()=>{
+    const today=Jalali.today(),year=today[0],mi=today[1]-1,key=Store.mkey(year,mi),before=localStorage.getItem(key),originalSet=Storage.prototype.setItem,originalRemove=Storage.prototype.removeItem;
     let saveResult,settleResult,deleteResult;
     Storage.prototype.setItem=function(k,v){if(k===key)throw new DOMException('Quota exceeded','QuotaExceededError');return originalSet.call(this,k,v);};
     try{saveResult=Store.saveMonth(year,mi,Object.assign(Store.loadMonth(year,mi),{fixedSalary:999999999}));settleResult=Store.settleMonth(year,mi);}finally{Storage.prototype.setItem=originalSet;}
     Storage.prototype.removeItem=function(k){if(k===key)throw new DOMException('Storage unavailable','QuotaExceededError');return originalRemove.call(this,k);};
     try{deleteResult=Store.deleteMonth(year,mi);}finally{Storage.prototype.removeItem=originalRemove;}
     return{saveRejected:saveResult===false,settlementRejected:settleResult===false,deleteRejected:deleteResult===false,notLocked:!Store.isMonthSettled(year,mi),dataUnchanged:localStorage.getItem(key)===before};
-  },monthFixture);
+  });
   if(!quotaSafety.saveRejected||!quotaSafety.settlementRejected||!quotaSafety.deleteRejected||!quotaSafety.notLocked||!quotaSafety.dataUnchanged)throw new Error('Storage quota failures were not safely detected: '+JSON.stringify(quotaSafety));
   page.once('dialog',async dialog=>{if(dialog.type()==='confirm')await dialog.accept();else await dialog.dismiss();});
   await appFrame.locator('#md-settle').click();
   await appFrame.locator('#md-settle').waitFor({state:'detached',timeout:10000});
-  const settlement=await appFrame.locator('#app').evaluate(({year,mi})=>{
-    const locked=Store.isMonthSettled(year,mi),saved=Store.loadMonth(year,mi),stats=Payroll.compute(saved),changed=Object.assign({},saved,{fixedSalary:999999999});
+  const settlement=await appFrame.locator('#app').evaluate(()=>{
+    const today=Jalali.today(),year=today[0],mi=today[1]-1,locked=Store.isMonthSettled(year,mi),saved=Store.loadMonth(year,mi),stats=Payroll.compute(saved),changed=Object.assign({},saved,{fixedSalary:999999999});
     return{locked,saveBlocked:Store.saveMonth(year,mi,changed)===false,deleteBlocked:Store.deleteMonth(year,mi)===false,snapshotNet:stats.netSalary,toolbarHidden:!document.getElementById('add-hours'),editHidden:!document.querySelector('table.dt button.ed'),settleHidden:!document.getElementById('md-settle')};
-  },monthFixture);
+  });
   if(!settlement.locked||!settlement.saveBlocked||!settlement.deleteBlocked||!settlement.toolbarHidden||!settlement.editHidden||!settlement.settleHidden)throw new Error('Month settlement lock failed: '+JSON.stringify(settlement));
-  await appFrame.locator('#app').evaluate(({key,previous})=>{if(previous===null)localStorage.removeItem(key);else localStorage.setItem(key,previous);window.App.navigate('today');},monthFixture);
+  await appFrame.locator('#app').evaluate(({key,previous})=>{if(previous===null)localStorage.removeItem(key);else localStorage.setItem(key,previous);window.App.navigate('today');},{key:monthFixture.key,previous:monthFixture.previous});
   const marketFixture={meta:{unit:'toman',stale:false,updated_at:'2026-11-25T08:00:00.000Z'},data:[
     {symbol:'USD_IRR_FREE',name_fa:'دلار آمریکا',currency:'IRT',price:285000,change_pct:1,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
     {symbol:'EUR_IRR_FREE',name_fa:'یورو',currency:'IRT',price:313000,change_pct:.5,timestamp:'2026-11-25T08:00:00.000Z',timestamp_tehran:'2026-11-25T11:30:00+03:30',source:'tgju'},
